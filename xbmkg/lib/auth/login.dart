@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:xbmkg/main_screen.dart';
+import '../screens/main_screen.dart';
 import '../models/user_model.dart';
+import '../services/permission_service.dart';
 import 'register.dart';
 
 class LoginPage extends StatefulWidget {
@@ -42,9 +43,14 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    // Request location permission using native Android dialog
+    await LocationService.requestLocationPermission();
+
+    if (!mounted) return;
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => MainScreen(username: user.username)),
+      MaterialPageRoute(builder: (_) => const MainScreen()),
     );
   }
 
@@ -205,7 +211,7 @@ class _LoginPageState extends State<LoginPage> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
       ),
       child: TextField(
         controller: controller,
@@ -224,7 +230,7 @@ class _LoginPageState extends State<LoginPage> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
       ),
       child: TextField(
         controller: passwordController,

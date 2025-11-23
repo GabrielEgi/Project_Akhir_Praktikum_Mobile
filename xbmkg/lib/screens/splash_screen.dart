@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'onboarding_page.dart';
-import 'login.dart';
+import 'onboarding_screen.dart';
+import '../auth/login.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -18,11 +18,13 @@ class _SplashPageState extends State<SplashPage> {
     _checkOnboarding();
   }
 
-  _checkOnboarding() async {
+  Future<void> _checkOnboarding() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool? hasSeen = prefs.getBool("hasSeenOnboarding");
 
     await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
 
     if (hasSeen == true) {
       Navigator.pushReplacement(

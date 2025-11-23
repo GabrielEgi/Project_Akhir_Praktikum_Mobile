@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'package:xbmkg/login.dart';
+import '../auth/login.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -18,6 +18,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Future<void> finishOnboarding() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool("hasSeenOnboarding", true);
+
+    if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
