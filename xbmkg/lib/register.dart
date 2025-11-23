@@ -72,7 +72,8 @@ class _RegisterPageState extends State<RegisterPage> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
           child: Column(
             children: [
-              const Icon(Icons.person_add_alt_1, size: 90, color: Colors.white),
+              const Icon(Icons.person_add_alt_1,
+                  size: 90, color: Colors.white),
 
               const SizedBox(height: 15),
 
@@ -93,6 +94,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
               const SizedBox(height: 30),
 
+              // CARD FORM
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
@@ -111,7 +113,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Username",
+                    const Text(
+                      "Username",
                       style: TextStyle(
                         color: Colors.black54,
                         fontSize: 14,
@@ -128,8 +131,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
                     const SizedBox(height: 20),
 
-                  
-                    const Text("Password",
+                    const Text(
+                      "Password",
                       style: TextStyle(
                         color: Colors.black54,
                         fontSize: 14,
@@ -156,34 +159,48 @@ class _RegisterPageState extends State<RegisterPage> {
                         child: const Text(
                           "DAFTAR",
                           style: TextStyle(
+                            color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 15),
+                     Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Sudah punya akun?",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const LoginPage(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Login",
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 15),
 
-              TextButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
-                  );
-                },
-                child: const Text(
-                  "Sudah punya akun? Login di sini",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              )
+              // ⬇️ Bagian LOGIN sudah diperbaiki
+             
             ],
           ),
         ),

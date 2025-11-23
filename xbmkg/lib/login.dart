@@ -3,7 +3,6 @@ import 'package:hive/hive.dart';
 import 'package:xbmkg/main_screen.dart';
 import '../models/user_model.dart';
 import 'register.dart';
-import 'main_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,9 +21,15 @@ class _LoginPageState extends State<LoginPage> {
     final username = usernameController.text.trim();
     final password = passwordController.text.trim();
 
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Username & password tidak boleh kosong")),
+      );
+      return;
+    }
+
     final box = Hive.box<UserModel>('users');
 
-    // cari user
     final user = box.values.firstWhere(
       (u) => u.username == username && u.password == password,
       orElse: () => UserModel(username: "", password: ""),
@@ -51,10 +56,7 @@ class _LoginPageState extends State<LoginPage> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF4FC3F7),
-              Color(0xFF0288D1),
-            ],
+            colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -80,66 +82,61 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 8),
               const Text(
                 "Masuk untuk melanjutkan",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.white70),
               ),
 
               const SizedBox(height: 30),
 
-              // FORM LOGIN CARD
+              // CARD LOGIN
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
+                  boxShadow: const [
+                    BoxShadow(
+                      blurRadius: 10,
+                      color: Colors.black26,
+                      offset: Offset(0, 4),
+                    )
+                  ],
                 ),
 
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    // USERNAME FIELD
-                    TextField(
-                      controller: usernameController,
-                      decoration: InputDecoration(
-                        labelText: "Username",
-                        prefixIcon: const Icon(Icons.person),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                    const Text(
+                      "Username",
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    _inputField(
+                      controller: usernameController,
+                      hint: "Masukkan username",
+                      icon: Icons.person,
                     ),
 
                     const SizedBox(height: 20),
 
-                    // PASSWORD FIELD
-                    TextField(
-                      controller: passwordController,
-                      obscureText: !isPasswordVisible,
-                      decoration: InputDecoration(
-                        labelText: "Password",
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            isPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              isPasswordVisible = !isPasswordVisible;
-                            });
-                          },
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                    const Text(
+                      "Password",
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 8),
 
-                    const SizedBox(height: 25),
+                    _passwordField(),
+
+                    const SizedBox(height: 28),
 
                     SizedBox(
                       width: double.infinity,
@@ -157,6 +154,7 @@ class _LoginPageState extends State<LoginPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -167,10 +165,11 @@ class _LoginPageState extends State<LoginPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Belum punya akun?"),
+                        const Text("Belum punya akun?",
+                            style: TextStyle(color: Colors.black)),
                         TextButton(
                           onPressed: () {
-                            Navigator.push(
+                            Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const RegisterPage(),
@@ -190,8 +189,61 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
-
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Input textfield
+  Widget _inputField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Color(0xFF0288D1)),
+          hintText: hint,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+      ),
+    );
+  }
+
+  // Password field
+  Widget _passwordField() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: TextField(
+        controller: passwordController,
+        obscureText: !isPasswordVisible,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.lock, color: Color(0xFF0288D1)),
+          hintText: "Masukkan password",
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          suffixIcon: IconButton(
+            icon: Icon(
+              isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+              color: Colors.grey,
+            ),
+            onPressed: () {
+              setState(() {
+                isPasswordVisible = !isPasswordVisible;
+              });
+            },
           ),
         ),
       ),
