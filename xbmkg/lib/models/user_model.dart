@@ -9,9 +9,13 @@ class UserModel extends HiveObject {
 
   @HiveField(1)
   String password;
-
+  
+  @HiveField(2)
+  String? profileImage;
   UserModel({
     required this.username,
     required this.password,
+    this.profileImage,
   });
+
 }

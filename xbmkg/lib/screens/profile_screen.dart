@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/user_model.dart';
 import '../auth/login.dart';
@@ -29,9 +31,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  String _getUsername() {
-    return _currentUser?.username ?? 'User';
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo),
+              title: const Text("Pilih dari Galeri"),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Ambil dari Kamera"),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null && _currentUser != null) {
+      _currentUser!.profileImage = pickedFile.path;
+      await _currentUser!.save();
+
+      setState(() {});
+    }
   }
+
+  String _getUsername() => _currentUser?.username ?? 'User';
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => _navigateToSettings(),
+            onPressed: _navigateToSettings,
           ),
         ],
       ),
@@ -61,19 +96,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
+    final image = _currentUser?.profileImage;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Default avatar = Icon(Icons.person)
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.blue.shade100,
-              child: const Icon(
-                Icons.person,
-                size: 60,
-                color: Colors.blue,
+            GestureDetector(
+              onTap: _pickImage,
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.blue.shade100,
+                backgroundImage: (image != null && File(image).existsSync())
+                    ? FileImage(File(image))
+                    : null,
+                child: (image == null)
+                    ? const Text(
+                        "A",
+                        style: TextStyle(
+                          fontSize: 48,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
               ),
             ),
             const SizedBox(height: 16),
@@ -103,7 +150,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildMenuItem(
             icon: Icons.person_outline,
             title: 'Edit Profil',
-            onTap: _showFeatureInDevelopment,
+            onTap: () {},
           ),
           const Divider(height: 1),
           _buildMenuItem(
@@ -115,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildMenuItem(
             icon: Icons.notifications_outlined,
             title: 'Notifikasi',
-            onTap: _navigateToSettings,
+            onTap: () {},
           ),
           const Divider(height: 1),
           _buildMenuItem(
@@ -170,26 +217,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showFeatureInDevelopment() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fitur dalam pengembangan')),
-    );
-  }
-
   void _showLogoutDialog() {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Keluar'),
-        content: const Text('Apakah Anda yakin ingin keluar dari akun?'),
+        content: const Text('Apakah Anda yakin ingin keluar?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Batal'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(dialogContext);
+              Navigator.pop(ctx);
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -206,27 +247,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showHelpDialog() {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Bantuan'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('WeatherNews adalah aplikasi informasi cuaca dan gempa bumi dari BMKG.'),
-            SizedBox(height: 12),
-            Text('Fitur utama:'),
-            Text('- Prakiraan cuaca'),
-            Text('- Informasi gempa bumi terkini'),
-            Text('- Kualitas udara'),
-            Text('- Notifikasi peringatan dini'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Tutup'),
-          ),
-        ],
+      builder: (_) => const AlertDialog(
+        title: Text('Bantuan'),
+        content: Text('Aplikasi informasi cuaca BMKG.'),
       ),
     );
   }
@@ -234,27 +257,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showAboutAppDialog() {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Tentang Aplikasi'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('WeatherNews'),
-            Text('Versi 1.0.0'),
-            SizedBox(height: 12),
-            Text('Sumber data: BMKG'),
-            Text('(Badan Meteorologi, Klimatologi, dan Geofisika)'),
-            SizedBox(height: 12),
-            Text('Developed for educational purposes'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Tutup'),
-          ),
-        ],
+      builder: (_) => const AlertDialog(
+        title: Text('Tentang Aplikasi'),
+        content: Text('WeatherNews v1.0.0'),
       ),
     );
   }
