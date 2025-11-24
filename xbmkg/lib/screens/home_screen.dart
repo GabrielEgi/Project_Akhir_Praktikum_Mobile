@@ -331,42 +331,64 @@ Future<void> _checkLocationPermission() async {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Akses Cepat",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+        const Text(
+          "Akses Cepat",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF0D47A1),
+          ),
+        ),
         const SizedBox(height: 12),
 
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.5,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.6,
           children: [
-            _quickAction(Icons.cloud_queue, "Prakiraan Cuaca", bmkgBlue, () {
-              Navigator.push(
+            _quickAction(
+              Icons.cloud_rounded,
+              "Prakiraan Cuaca",
+              const Color(0xFF1E88E5),
+              const Color(0xFFE3F2FD),
+              () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const WeatherScreen()),
-              );
-            }),
-            _quickAction(Icons.terrain, "Info Gempa", Colors.orange, () {
-              Navigator.push(
+              ),
+            ),
+            _quickAction(
+              Icons.terrain_rounded,
+              "Info Gempa",
+              const Color(0xFFFF7043),
+              const Color(0xFFFBE9E7),
+              () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const EarthquakeScreen()),
-              );
-            }),
-            _quickAction(Icons.air, "Kualitas Udara", Colors.green, () {
-              Navigator.push(
+              ),
+            ),
+            _quickAction(
+              Icons.air_rounded,
+              "Kualitas Udara",
+              const Color(0xFF66BB6A),
+              const Color(0xFFE8F5E9),
+              () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const WatchPointScreen()),
-              );
-            }),
-            _quickAction(Icons.location_on, "Titik Pantau", Colors.teal, () {
-              Navigator.push(
+              ),
+            ),
+            _quickAction(
+              Icons.location_on_rounded,
+              "Titik Pantau",
+              const Color(0xFF26A69A),
+              const Color(0xFFE0F2F1),
+              () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const WatchPointScreen()),
-              );
-            }),
+              ),
+            ),
           ],
         ),
       ],
@@ -374,21 +396,49 @@ Future<void> _checkLocationPermission() async {
   }
 
   Widget _quickAction(
-      IconData icon, String title, Color color, VoidCallback onTap) {
+    IconData icon,
+    String title,
+    Color iconColor,
+    Color bgColor,
+    VoidCallback onTap,
+  ) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 36, color: color),
-              const SizedBox(height: 6),
-              Text(title, textAlign: TextAlign.center),
-            ],
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: iconColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 26, color: Colors.white),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
