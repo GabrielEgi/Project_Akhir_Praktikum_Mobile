@@ -128,7 +128,6 @@ class _InputFieldState extends State<InputField> {
               ),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement camera
               },
             ),
             ListTile(
@@ -136,7 +135,6 @@ class _InputFieldState extends State<InputField> {
               title: const Text('Foto', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement photo picker
               },
             ),
             ListTile(
@@ -144,7 +142,6 @@ class _InputFieldState extends State<InputField> {
               title: const Text('File', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement file picker
               },
             ),
           ],
