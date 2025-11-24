@@ -144,8 +144,8 @@ class EarthquakeScreen extends StatelessWidget {
       );
     }
 
-    final quakes = provider.currentList;
-    if (quakes.isEmpty) {
+    final earthquakes = provider.currentList;
+    if (earthquakes.isEmpty) {
       return const Center(
         child: Text('Tidak ada data gempa'),
       );
@@ -153,9 +153,9 @@ class EarthquakeScreen extends StatelessWidget {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: quakes.length,
+      itemCount: earthquakes.length,
       itemBuilder: (context, index) {
-        final e = quakes[index];
+        final e = earthquakes[index];
 
         return Card(
           elevation: 3,

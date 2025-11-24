@@ -1,11 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
 import '../models/earthquake_model.dart';
-import '../services/bmkg_api_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/permission_service.dart';
 
 class EarthquakeProvider extends ChangeNotifier {
-  final BmkgApiService _apiService = BmkgApiService();
   final LocalStorageService _storageService = LocalStorageService();
 
   // State
@@ -14,7 +15,8 @@ class EarthquakeProvider extends ChangeNotifier {
   List<EarthquakeModel> _feltEarthquakes = [];
   bool _isLoading = false;
   String? _error;
-  String _selectedTab = 'latest'; // latest, recent, felt
+  String _selectedTab = 'latest';
+
   double? _userLatitude;
   double? _userLongitude;
 
@@ -25,8 +27,6 @@ class EarthquakeProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get selectedTab => _selectedTab;
-  double? get userLatitude => _userLatitude;
-  double? get userLongitude => _userLongitude;
 
   List<EarthquakeModel> get currentList {
     switch (_selectedTab) {
@@ -43,7 +43,7 @@ class EarthquakeProvider extends ChangeNotifier {
     _init();
   }
 
-  /// Initialize provider
+  // Init
   Future<void> _init() async {
     await _detectLocation();
     await loadEarthquakes();
@@ -52,48 +52,15 @@ class EarthquakeProvider extends ChangeNotifier {
   /// Detect user location
   Future<void> _detectLocation() async {
     try {
-      final position = await LocationService.getCurrentPosition();
-      if (position != null) {
-        _userLatitude = position.latitude;
-        _userLongitude = position.longitude;
+      final pos = await LocationService.getCurrentPosition();
+      if (pos != null) {
+        _userLatitude = pos.latitude;
+        _userLongitude = pos.longitude;
       }
-    } catch (e) {
-      debugPrint('Error detecting location: $e');
-    }
+    } catch (_) {}
   }
 
-  /// Calculate distance from user to earthquake in km
-  double? getDistanceFromUser(EarthquakeModel earthquake) {
-    if (_userLatitude == null || _userLongitude == null) return null;
-    if (earthquake.latitude == null || earthquake.longitude == null) return null;
-
-    return LocationService.calculateDistance(
-      _userLatitude!,
-      _userLongitude!,
-      earthquake.latitude!,
-      earthquake.longitude!,
-    );
-  }
-
-  /// Get earthquakes sorted by distance from user
-  List<EarthquakeModel> getEarthquakesSortedByDistance() {
-    if (_userLatitude == null || _userLongitude == null) {
-      return currentList;
-    }
-
-    final sorted = List<EarthquakeModel>.from(currentList);
-    sorted.sort((a, b) {
-      final distA = getDistanceFromUser(a);
-      final distB = getDistanceFromUser(b);
-      if (distA == null && distB == null) return 0;
-      if (distA == null) return 1;
-      if (distB == null) return -1;
-      return distA.compareTo(distB);
-    });
-    return sorted;
-  }
-
-  /// Load all earthquake data
+  // Load
   Future<void> loadEarthquakes({bool forceRefresh = false}) async {
     _isLoading = true;
     _error = null;
@@ -101,15 +68,12 @@ class EarthquakeProvider extends ChangeNotifier {
 
     try {
       if (!forceRefresh) {
-        // Try to load from cache first
-        final cachedEarthquakes = _storageService.getEarthquakesSorted();
-        if (cachedEarthquakes.isNotEmpty) {
-          _latestEarthquakes = cachedEarthquakes;
+        final cached = _storageService.getEarthquakesSorted();
+        if (cached.isNotEmpty) {
+          _latestEarthquakes = cached;
           _isLoading = false;
           notifyListeners();
-
-          // Load in background
-          _loadFromApi();
+          _loadFromApi(); // background update
           return;
         }
       }
@@ -117,150 +81,112 @@ class EarthquakeProvider extends ChangeNotifier {
       await _loadFromApi();
     } catch (e) {
       _error = e.toString();
-
-      // Try to load from cache on error
-      final cachedEarthquakes = _storageService.getEarthquakesSorted();
-      if (cachedEarthquakes.isNotEmpty) {
-        _latestEarthquakes = cachedEarthquakes;
-        _error = 'Using cached data. ${e.toString()}';
-      }
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  /// Load data from API
-  Future<void> _loadFromApi() async {
-    // Load latest earthquake
-    final latest = await _apiService.getLatestEarthquakes();
-    if (latest.isNotEmpty) {
-      _latestEarthquakes = latest;
-      await _storageService.saveEarthquakes(latest);
     }
 
-    // Load recent earthquakes (M≥5.0)
-    final recent = await _apiService.getRecentEarthquakes();
-    if (recent.isNotEmpty) {
-      _recentEarthquakes = recent;
-    }
-
-    // Load felt earthquakes
-    final felt = await _apiService.getFeltEarthquakes();
-    if (felt.isNotEmpty) {
-      _feltEarthquakes = felt;
-    }
-
+    _isLoading = false;
     notifyListeners();
   }
 
-  /// Change selected tab
+  /// BMKG API (Versi Baru)
+  Future<void> _loadFromApi() async {
+    try {
+      // MAIN API
+      final latestRes = await http.get(Uri.parse(
+          "https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json"));
+      final recentRes = await http.get(Uri.parse(
+          "https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json"));
+      final feltRes = await http.get(Uri.parse(
+          "https://data.bmkg.go.id/DataMKG/TEWS/gempadirasakan.json"));
+
+      if (latestRes.statusCode == 200) {
+        final data = jsonDecode(latestRes.body);
+        final g = data["Infogempa"]["gempa"];
+        _latestEarthquakes = [EarthquakeModel.fromJson(g)];
+        _storageService.saveEarthquakes(_latestEarthquakes);
+      }
+
+      if (recentRes.statusCode == 200) {
+        final data = jsonDecode(recentRes.body);
+        final list = data["Infogempa"]["gempa"] as List;
+        _recentEarthquakes =
+            list.map((e) => EarthquakeModel.fromJson(e)).toList();
+      }
+
+      if (feltRes.statusCode == 200) {
+        final data = jsonDecode(feltRes.body);
+        final list = data["Infogempa"]["gempa"] as List;
+        _feltEarthquakes =
+            list.map((e) => EarthquakeModel.fromJson(e)).toList();
+      }
+
+      notifyListeners();
+    } catch (e) {
+      _error = "Gagal memuat data dari BMKG: $e";
+    }
+  }
+
+  // Change Tab
   void changeTab(String tab) {
-    if (_selectedTab == tab) return;
+    if (tab == _selectedTab) return;
     _selectedTab = tab;
     notifyListeners();
   }
 
-  /// Refresh earthquake data
+  // Refresh
   Future<void> refresh() async {
     await loadEarthquakes(forceRefresh: true);
   }
 
-  /// Filter earthquakes by minimum magnitude
-  List<EarthquakeModel> filterByMagnitude(double minMagnitude) {
-    return currentList.where((eq) {
-      return eq.magnitude != null && eq.magnitude! >= minMagnitude;
-    }).toList();
+  // Distance
+  double? getDistanceFromUser(EarthquakeModel eq) {
+    if (_userLatitude == null ||
+        _userLongitude == null ||
+        eq.latitude == null ||
+        eq.longitude == null) {
+      return null;
+    }
+
+    return LocationService.calculateDistance(
+      _userLatitude!,
+      _userLongitude!,
+      eq.latitude!,
+      eq.longitude!,
+    );
   }
 
-  /// Filter earthquakes by region
+  List<EarthquakeModel> getEarthquakesSortedByDistance() {
+    final sorted = List<EarthquakeModel>.from(currentList);
+    sorted.sort((a, b) {
+      final da = getDistanceFromUser(a);
+      final db = getDistanceFromUser(b);
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return da.compareTo(db);
+    });
+    return sorted;
+  }
+
+  // Filters
+  List<EarthquakeModel> filterByMagnitude(double minMag) {
+    return currentList
+        .where((e) => e.magnitude != null && e.magnitude! >= minMag)
+        .toList();
+  }
+
   List<EarthquakeModel> filterByRegion(String region) {
-    return currentList.where((eq) {
-      if (eq.region == null) return false;
-      return eq.region!.toLowerCase().contains(region.toLowerCase());
-    }).toList();
-  }
-
-  /// Filter earthquakes by date range
-  List<EarthquakeModel> filterByDateRange(DateTime start, DateTime end) {
-    return currentList.where((eq) {
-      if (eq.datetime == null) return false;
-      return eq.datetime!.isAfter(start) && eq.datetime!.isBefore(end);
-    }).toList();
-  }
-
-  /// Get earthquake statistics
-  Map<String, dynamic> getStatistics() {
-    if (currentList.isEmpty) {
-      return {
-        'total': 0,
-        'averageMagnitude': 0.0,
-        'maxMagnitude': 0.0,
-        'minMagnitude': 0.0,
-        'averageDepth': 0.0,
-      };
-    }
-
-    final magnitudes = currentList
-        .where((eq) => eq.magnitude != null)
-        .map((eq) => eq.magnitude!)
+    return currentList
+        .where((e) =>
+            e.region != null &&
+            e.region!.toLowerCase().contains(region.toLowerCase()))
         .toList();
-
-    final depths = currentList
-        .where((eq) => eq.depth != null)
-        .map((eq) => eq.depth!.toDouble())
-        .toList();
-
-    return {
-      'total': currentList.length,
-      'averageMagnitude': magnitudes.isNotEmpty
-          ? magnitudes.reduce((a, b) => a + b) / magnitudes.length
-          : 0.0,
-      'maxMagnitude': magnitudes.isNotEmpty
-          ? magnitudes.reduce((a, b) => a > b ? a : b)
-          : 0.0,
-      'minMagnitude': magnitudes.isNotEmpty
-          ? magnitudes.reduce((a, b) => a < b ? a : b)
-          : 0.0,
-      'averageDepth': depths.isNotEmpty
-          ? depths.reduce((a, b) => a + b) / depths.length
-          : 0.0,
-    };
   }
 
-  /// Get earthquakes by magnitude category
-  Map<String, int> getEarthquakesByCategory() {
-    final Map<String, int> categories = {
-      'Mikro': 0,
-      'Minor': 0,
-      'Ringan': 0,
-      'Sedang': 0,
-      'Kuat': 0,
-      'Mayor': 0,
-      'Sangat Besar': 0,
-    };
-
-    for (var eq in currentList) {
-      final category = eq.getMagnitudeCategory();
-      categories[category] = (categories[category] ?? 0) + 1;
-    }
-
-    return categories;
-  }
-
-  /// Check if earthquake should trigger notification
-  bool shouldNotify(EarthquakeModel earthquake) {
-    // Implementasi logic notifikasi berdasarkan preferences
-    // Contoh: hanya notif jika magnitude >= setting minimum
-    return earthquake.magnitude != null && earthquake.magnitude! >= 5.0;
-  }
-
-  /// Clear cache
+  // Cache clear
   Future<void> clearCache() async {
     await _storageService.clearEarthquakes();
-    _latestEarthquakes = [];
-    _recentEarthquakes = [];
-    _feltEarthquakes = [];
+    _latestEarthquakes.clear();
+    _recentEarthquakes.clear();
+    _feltEarthquakes.clear();
     notifyListeners();
   }
 }
