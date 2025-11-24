@@ -3,21 +3,21 @@ import '../models/weather_model.dart';
 import '../services/bmkg_api_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/preferences_service.dart';
-import '../services/permission_service.dart';
+import '../services/location_service.dart';
 
 class WeatherProvider extends ChangeNotifier {
   final BmkgApiService _apiService = BmkgApiService();
   final LocalStorageService _storageService = LocalStorageService();
 
-  // State
   WeatherModel? _currentWeather;
   bool _isLoading = false;
   String? _error;
   String _selectedLocation = 'Yogyakarta';
+
   double? _userLatitude;
   double? _userLongitude;
 
-  // Getters
+  // GETTERS
   WeatherModel? get currentWeather => _currentWeather;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -25,94 +25,102 @@ class WeatherProvider extends ChangeNotifier {
   double? get userLatitude => _userLatitude;
   double? get userLongitude => _userLongitude;
 
+  // ---------------------------------------------------------
+  // INIT PROVIDER
+  // ---------------------------------------------------------
   WeatherProvider() {
     _init();
   }
 
-  /// Initialize provider
   Future<void> _init() async {
-    // Try to get location from GPS first
     await _detectLocation();
     await loadWeather();
   }
 
-  /// Detect user location using GPS
+  // ---------------------------------------------------------
+  // 📍 DETECT GPS LOCATION
+  // ---------------------------------------------------------
   Future<void> _detectLocation() async {
     try {
       final useGPS = PreferencesService.getUseGPS();
+
+      // Jika GPS dimatikan user → lokasi default
       if (!useGPS) {
+        _selectedLocation = PreferencesService.getDefaultLocation();
+        debugPrint("ℹ️ GPS OFF → lokasi default: $_selectedLocation");
+        return;
+      }
+
+      // Ambil posisi GPS
+      final position = await LocationService.getCurrentPosition();
+
+      if (position == null) {
+        debugPrint("❌ Gagal ambil GPS → pakai default");
         _selectedLocation = PreferencesService.getDefaultLocation();
         return;
       }
 
-      final position = await LocationService.getCurrentPosition();
-      if (position != null) {
-        _userLatitude = position.latitude;
-        _userLongitude = position.longitude;
+      _userLatitude = position.latitude;
+      _userLongitude = position.longitude;
 
-        // Get nearest city from coordinates
-        final nearestCity = LocationService.getNearestCity(
-          position.latitude,
-          position.longitude,
-        );
-        _selectedLocation = nearestCity;
-        await PreferencesService.setDefaultLocation(nearestCity);
-      } else {
-        _selectedLocation = PreferencesService.getDefaultLocation();
-      }
+      debugPrint("📍 GPS: $_userLatitude, $_userLongitude");
+
+      // Cari kota terdekat
+      final nearestCity = LocationService.getNearestCity(
+        position.latitude,
+        position.longitude,
+      );
+
+      debugPrint("📌 Kota terdeteksi: $nearestCity");
+
+      _selectedLocation = nearestCity;
+      await PreferencesService.setDefaultLocation(nearestCity);
+
     } catch (e) {
-      debugPrint('Error detecting location: $e');
+      debugPrint("⚠️ ERROR detect location → $e");
       _selectedLocation = PreferencesService.getDefaultLocation();
     }
   }
 
-  /// Refresh location and weather
-  Future<void> refreshWithLocation() async {
-    await _detectLocation();
-    await loadWeather(forceRefresh: true);
-  }
-
-  /// Load weather data
+  // ---------------------------------------------------------
+  // 🌤 LOAD WEATHER
+  // ---------------------------------------------------------
   Future<void> loadWeather({bool forceRefresh = false}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Check if we need to refresh
+      // Gunakan cache jika masih valid
       if (!forceRefresh && !PreferencesService.isDataStale()) {
-        // Load from local storage
-        final cachedWeather = _storageService.getWeather(_selectedLocation);
-        if (cachedWeather != null) {
-          _currentWeather = cachedWeather;
+        final cached = _storageService.getWeather(_selectedLocation);
+        if (cached != null) {
+          _currentWeather = cached;
           _isLoading = false;
           notifyListeners();
           return;
         }
       }
 
-      // Fetch from API - pass city name directly, service handles mapping
-      final weather = await _apiService.getWeatherForecast(_selectedLocation);
+      // Ambil data BMKG API
+      final weather =
+          await _apiService.getWeatherForecast(_selectedLocation);
 
       if (weather != null) {
         _currentWeather = weather;
 
-        // Save to local storage
         await _storageService.saveWeather(_selectedLocation, weather);
-
-        // Update last update time
         await PreferencesService.setLastUpdate(DateTime.now());
       } else {
-        _error = 'Failed to load weather data';
+        _error = "Failed to load weather data";
       }
     } catch (e) {
-      _error = e.toString();
+      _error = "Error loading weather: $e";
 
-      // Try to load from cache on error
-      final cachedWeather = _storageService.getWeather(_selectedLocation);
-      if (cachedWeather != null) {
-        _currentWeather = cachedWeather;
-        _error = 'Using cached data. ${e.toString()}';
+      final cached = _storageService.getWeather(_selectedLocation);
+      if (cached != null) {
+        _currentWeather = cached;
+        _error = "Using cached data due to error.";
       }
     } finally {
       _isLoading = false;
@@ -120,92 +128,115 @@ class WeatherProvider extends ChangeNotifier {
     }
   }
 
-  /// Change selected location
-  Future<void> changeLocation(String location) async {
-    if (_selectedLocation == location) return;
+  // ---------------------------------------------------------
+  // 🔄 REFRESH LOCATION + WEATHER
+  // (ini yang membuat refresh kembali ke lokasi GPS)
+  // ---------------------------------------------------------
+ Future<void> refreshWithLocation() async {
+  bool granted = await LocationService.isLocationPermissionGranted();
+  if (!granted) {
+    granted = await LocationService.requestLocationPermission();
+    if (!granted) {
+      // Jika tetap ditolak → jangan paksa, pakai default
+      _selectedLocation = PreferencesService.getDefaultLocation();
+      await loadWeather(forceRefresh: true);
+      return;
+    }
+  }
 
+  await _detectLocation();
+  await loadWeather(forceRefresh: true);
+}
+
+
+  // ---------------------------------------------------------
+  // 📍 CHANGE LOCATION MANUAL
+  // ---------------------------------------------------------
+  Future<void> changeLocation(String location) async {
     _selectedLocation = location;
+
     await PreferencesService.setDefaultLocation(location);
     await loadWeather(forceRefresh: true);
   }
 
-  /// Refresh weather data
   Future<void> refresh() async {
     await loadWeather(forceRefresh: true);
   }
 
-  /// Get temperature in preferred unit
+  // ---------------------------------------------------------
+  // 🌡 UTIL
+  // ---------------------------------------------------------
   double? getTemperature(double? celsius) {
     if (celsius == null) return null;
 
-    final unit = PreferencesService.getTemperatureUnit();
-    if (unit == 'F') {
-      return (celsius * 9 / 5) + 32;
-    }
-    return celsius;
+    return PreferencesService.getTemperatureUnit() == 'F'
+        ? (celsius * 9 / 5) + 32
+        : celsius;
   }
 
-  /// Get temperature unit symbol
   String getTemperatureUnit() {
     return PreferencesService.getTemperatureUnit();
   }
 
-  /// Get hourly forecast for today
+  // ---------------------------------------------------------
+  // 📊 TODAY FORECAST
+  // ---------------------------------------------------------
   List<WeatherData> getTodayForecast() {
     if (_currentWeather?.forecasts == null) return [];
 
     final now = DateTime.now();
-    return _currentWeather!.forecasts!.where((forecast) {
-      if (forecast.datetime == null) return false;
-      return forecast.datetime!.year == now.year &&
-          forecast.datetime!.month == now.month &&
-          forecast.datetime!.day == now.day;
+    return _currentWeather!.forecasts!.where((f) {
+      if (f.datetime == null) return false;
+      return f.datetime!.year == now.year &&
+          f.datetime!.month == now.month &&
+          f.datetime!.day == now.day;
     }).toList();
   }
 
-  /// Get forecast for next 7 days
+  // ---------------------------------------------------------
+  // 📆 NEXT 7 DAYS
+  // ---------------------------------------------------------
   List<WeatherData> getWeeklyForecast() {
     if (_currentWeather?.forecasts == null) return [];
 
     final Map<String, WeatherData> dailyMap = {};
 
-    for (var forecast in _currentWeather!.forecasts!) {
-      if (forecast.datetime == null) continue;
+    for (var f in _currentWeather!.forecasts!) {
+      if (f.datetime == null) continue;
 
-      final dateKey =
-          '${forecast.datetime!.year}-${forecast.datetime!.month.toString().padLeft(2, '0')}-${forecast.datetime!.day.toString().padLeft(2, '0')}';
+      final key =
+          '${f.datetime!.year}-${f.datetime!.month}-${f.datetime!.day}';
 
-      // Prefer forecast at noon (12:00) for each day, but accept any if noon not available
-      if (!dailyMap.containsKey(dateKey)) {
-        dailyMap[dateKey] = forecast;
-      } else if (forecast.datetime!.hour == 12) {
-        // Replace with noon forecast if available
-        dailyMap[dateKey] = forecast;
+      // Ambil jam 12 siang untuk representasi hari
+      if (!dailyMap.containsKey(key) || f.datetime!.hour == 12) {
+        dailyMap[key] = f;
       }
     }
 
-    // Sort by date and take 7 days
-    final sortedKeys = dailyMap.keys.toList()..sort();
-    return sortedKeys.take(7).map((key) => dailyMap[key]!).toList();
+    final sorted = dailyMap.keys.toList()
+      ..sort();
+
+    return sorted.take(7).map((key) => dailyMap[key]!).toList();
   }
 
-  /// Get current temperature
+  // ---------------------------------------------------------
+  // 🌤 CURRENT
+  // ---------------------------------------------------------
   double? getCurrentTemperature() {
-    final todayForecasts = getTodayForecast();
-    if (todayForecasts.isEmpty) return null;
-
-    return getTemperature(todayForecasts.first.temperature);
+    final today = getTodayForecast();
+    return today.isNotEmpty
+        ? getTemperature(today.first.temperature)
+        : null;
   }
 
-  /// Get current weather condition
   String? getCurrentWeatherCondition() {
-    final todayForecasts = getTodayForecast();
-    if (todayForecasts.isEmpty) return null;
-
-    return todayForecasts.first.weather;
+    final today = getTodayForecast();
+    return today.isNotEmpty ? today.first.weather : null;
   }
 
-  /// Clear cache
+  // ---------------------------------------------------------
+  // ❌ CLEAR CACHE
+  // ---------------------------------------------------------
   Future<void> clearCache() async {
     await _storageService.clearWeather();
     _currentWeather = null;

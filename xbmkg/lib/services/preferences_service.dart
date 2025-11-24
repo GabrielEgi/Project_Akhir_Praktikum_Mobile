@@ -136,7 +136,7 @@ class PreferencesService {
 
   /// Get use GPS
   static bool getUseGPS() {
-    return instance.getBool(keyUseGPS) ?? false;
+    return instance.getBool(keyUseGPS) ?? true;
   }
 
   // ============ Cache Management ============

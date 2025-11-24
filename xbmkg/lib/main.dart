@@ -13,6 +13,7 @@ import 'services/local_storage_service.dart';
 import 'providers/weather_provider.dart';
 import 'providers/earthquake_provider.dart';
 import 'providers/watch_point_provider.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,7 +42,8 @@ void main() async {
 
   // Initialize date formatting for Indonesian locale
   await initializeDateFormatting('id_ID', null);
-
+  await WeatherNotificationService.init();
+  await WeatherNotificationService.requestPermission();
   runApp(const WeatherNewsApp());
 }
 

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+
 import 'package:xbmkg/screens/weather_screen.dart';
 import 'package:xbmkg/screens/earthquake_screen.dart';
-import 'package:xbmkg/screens/air_quality_screen.dart'; 
+import 'package:xbmkg/screens/watch_point_screen.dart';
+
 import '../providers/weather_provider.dart';
 import '../providers/earthquake_provider.dart';
-import '../services/permission_service.dart';
 import '../services/preferences_service.dart';
-import 'watch_point_screen.dart';
+import '../services/location_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,48 +25,64 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkLocationPermission();
   }
 
-  Future<void> _checkLocationPermission() async {
-    final useGPS = PreferencesService.getUseGPS();
-    if (useGPS) {
-      final hasPermission = await LocationService.isLocationPermissionGranted();
-      if (!hasPermission) {
-        await LocationService.requestLocationPermission();
-      }
-    }
+Future<void> _checkLocationPermission() async {
+  final useGPS = PreferencesService.getUseGPS();
+
+  if (!useGPS) return;
+
+  // 👉 Cek izin lokasi
+  bool granted = await LocationService.isLocationPermissionGranted();
+
+  // 👉 Jika belum ada izin → minta izin
+  if (!granted) {
+    granted = await LocationService.requestLocationPermission();
   }
+
+  // 👉 Jika tetap ditolak → jangan paksa, tampilkan popup
+  if (!granted) {
+    if (mounted) {
+      _showPermissionDeniedDialog();
+    }
+    return;
+  }
+
+  // 👉 Jika sudah diizinkan → refresh sesuai GPS
+  await context.read<WeatherProvider>().refreshWithLocation();
+}
+
 
   @override
   Widget build(BuildContext context) {
     final bmkgBlue = const Color(0xFF0077C8);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F1FF), // BMKG soft blue
+      backgroundColor: const Color(0xFFE8F1FF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A73E8), // BMKG blue
+        backgroundColor: const Color(0xFF1A73E8),
         elevation: 0,
         centerTitle: true,
         title: const Text(
           'WeatherNews EXBMKG',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
 
+      // ==========================================================
+      // FINAL FIX: REFRESH SELALU BALIK GPS
+      // ==========================================================
       body: RefreshIndicator(
         color: bmkgBlue,
         onRefresh: () async {
-          await Future.wait([
-            context.read<WeatherProvider>().refresh(),
-            context.read<EarthquakeProvider>().refresh(),
-          ]);
+          final wp = context.read<WeatherProvider>();
+          final ep = context.read<EarthquakeProvider>();
+
+          await wp.refreshWithLocation();
+          await ep.refresh();
         },
 
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -84,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ---------------------------------------------------------
-  //  SECTION: LOKASI
+  // LOKASI
   // ---------------------------------------------------------
   Widget _buildLocationCard(Color bmkgBlue) {
     return Consumer<WeatherProvider>(
@@ -98,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: bmkgBlue.withValues(alpha: 0.15),
+                    color: bmkgBlue.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(Icons.location_on, color: bmkgBlue, size: 30),
@@ -114,15 +131,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         provider.selectedLocation,
                         style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                        ),
+                            fontSize: 22, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         DateFormat('EEEE, d MMMM yyyy', 'id_ID')
                             .format(DateTime.now()),
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -141,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ---------------------------------------------------------
-  //  SECTION: CUACA HARI INI
+  // CUACA
   // ---------------------------------------------------------
   Widget _buildWeatherSummary(Color bmkgBlue) {
     return Consumer<WeatherProvider>(
@@ -156,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [bmkgBlue, bmkgBlue.withValues(alpha: 0.7)],
+              colors: [bmkgBlue, bmkgBlue.withOpacity(0.7)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -198,15 +214,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           kondisi ?? "Memuat...",
-                          style: const TextStyle(
-                              fontSize: 18, color: Colors.white),
+                          style:
+                              const TextStyle(fontSize: 18, color: Colors.white),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           provider.selectedLocation,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: Colors.white.withOpacity(0.8),
                           ),
                         ),
                       ],
@@ -222,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ---------------------------------------------------------
-  //  SECTION: GEMPA
+  // GEMPA
   // ---------------------------------------------------------
   Widget _buildEarthquakeSummary() {
     return Consumer<EarthquakeProvider>(
@@ -248,9 +264,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Text("Gempa Terkini",
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w600)),
-                    Icon(Icons.warning_amber_rounded,
-                        color:
-                            (data?.magnitude ?? 0) >= 5 ? Colors.orange : Colors.grey),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: (data?.magnitude ?? 0) >= 5
+                          ? Colors.orange
+                          : Colors.grey,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -261,8 +280,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     children: [
                       Container(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 10),
                         decoration: BoxDecoration(
                           color: _getMagnitudeColor(data.magnitude),
                           borderRadius: BorderRadius.circular(8),
@@ -270,7 +289,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Text(
                           "M ${data.magnitude?.toStringAsFixed(1)}",
                           style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -305,7 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ---------------------------------------------------------
-  //  SECTION: MENU CEPAT
+  // MENU CEPAT
   // ---------------------------------------------------------
   Widget _buildQuickActions(Color bmkgBlue) {
     return Column(
@@ -337,8 +357,8 @@ class _HomeScreenState extends State<HomeScreen> {
             }),
             _quickAction(Icons.air, "Kualitas Udara", Colors.green, () {
               Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AirQualityScreen()),
+                context,
+                MaterialPageRoute(builder: (_) => const WatchPointScreen()),
               );
             }),
             _quickAction(Icons.location_on, "Titik Pantau", Colors.teal, () {
@@ -376,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ---------------------------------------------------------
-  //  UTIL
+  // UTIL
   // ---------------------------------------------------------
   Widget _loadingCard({double height = 100}) {
     return Card(
@@ -395,7 +415,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Colors.red;
   }
 
-  // popup lokasi
+  // ---------------------------------------------------------
+  // POPUP PILIH LOKASI MANUAL
+  // ---------------------------------------------------------
   void _showLocationDialog() {
     final cities = [
       "Jakarta",
@@ -431,4 +453,23 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  void _showPermissionDeniedDialog() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Izin Lokasi Ditolak'),
+      content: const Text(
+          'Aplikasi memerlukan izin lokasi untuk menampilkan cuaca berdasarkan lokasi Anda. '
+          'Silakan aktifkan izin lokasi di pengaturan perangkat Anda.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Tutup'),
+        ),
+      ],
+    ),
+  );
 }
+  
+}
+  
