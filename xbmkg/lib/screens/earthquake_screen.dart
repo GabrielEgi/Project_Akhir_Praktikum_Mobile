@@ -8,18 +8,26 @@ class EarthquakeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bmkgBlue = const Color(0xFF005AAC);
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F7FF),
       appBar: AppBar(
-        title: const Text('Info Gempa Bumi'),
+        backgroundColor: bmkgBlue,
+        title: const Text(
+          'Info Gempa BMKG',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: Consumer<EarthquakeProvider>(
         builder: (context, provider, child) {
           return Column(
             children: [
-              _buildTabBar(context, provider),
+              _buildBMKGTabBar(context, provider),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () => provider.refresh(),
+                  color: bmkgBlue,
                   child: _buildEarthquakeList(context, provider),
                 ),
               ),
@@ -30,9 +38,15 @@ class EarthquakeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTabBar(BuildContext context, EarthquakeProvider provider) {
+  // ---------------------------------------------------------
+  // TAB BAR
+  // ---------------------------------------------------------
+  Widget _buildBMKGTabBar(BuildContext context, EarthquakeProvider provider) {
+    final bmkgBlue = const Color(0xFF005AAC);
+
     return Container(
-      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      color: bmkgBlue.withOpacity(0.1),
       child: Row(
         children: [
           Expanded(
@@ -74,16 +88,16 @@ class EarthquakeScreen extends StatelessWidget {
     bool isSelected,
     VoidCallback onTap,
   ) {
+    final bmkgBlue = const Color(0xFF005AAC);
+
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected
-                  ? Theme.of(context).primaryColor
-                  : Colors.transparent,
+              color: isSelected ? bmkgBlue : Colors.transparent,
               width: 3,
             ),
           ),
@@ -92,16 +106,18 @@ class EarthquakeScreen extends StatelessWidget {
           title,
           textAlign: TextAlign.center,
           style: TextStyle(
+            fontSize: 15,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected
-                ? Theme.of(context).primaryColor
-                : Theme.of(context).textTheme.bodyMedium?.color,
+            color: isSelected ? bmkgBlue : Colors.black54,
           ),
         ),
       ),
     );
   }
 
+  // ---------------------------------------------------------
+  // LIST GEMPA
+  // ---------------------------------------------------------
   Widget _buildEarthquakeList(
     BuildContext context,
     EarthquakeProvider provider,
@@ -115,10 +131,10 @@ class EarthquakeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
+            const Icon(Icons.error_outline, size: 72, color: Colors.red),
+            const SizedBox(height: 12),
             Text(provider.error!),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () => provider.refresh(),
               child: const Text('Coba Lagi'),
@@ -128,53 +144,58 @@ class EarthquakeScreen extends StatelessWidget {
       );
     }
 
-    final earthquakes = provider.currentList;
-
-    if (earthquakes.isEmpty) {
+    final quakes = provider.currentList;
+    if (quakes.isEmpty) {
       return const Center(
-        child: Text('Tidak ada data gempa bumi'),
+        child: Text('Tidak ada data gempa'),
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: earthquakes.length,
+      itemCount: quakes.length,
       itemBuilder: (context, index) {
-        final earthquake = earthquakes[index];
+        final e = quakes[index];
+
         return Card(
-          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 3,
+          shadowColor: Colors.black26,
+          margin: const EdgeInsets.only(bottom: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           child: InkWell(
+            borderRadius: BorderRadius.circular(14),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      EarthquakeDetailScreen(earthquake: earthquake),
+                  builder: (_) => EarthquakeDetailScreen(earthquake: e),
                 ),
               );
             },
-            borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // MAGNITUDE & DEPTH
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 14,
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: _getMagnitudeColor(earthquake.magnitude),
+                          color: _getMagnitudeColor(e.magnitude),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'M ${earthquake.magnitude?.toStringAsFixed(1) ?? '-'}',
+                          'M ${e.magnitude?.toStringAsFixed(1) ?? '-'}',
                           style: const TextStyle(
-                            color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                             fontSize: 16,
                           ),
                         ),
@@ -185,55 +206,73 @@ class EarthquakeScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              earthquake.getMagnitudeCategory(),
-                              style: Theme.of(context).textTheme.bodySmall,
+                              e.getMagnitudeCategory(),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             Text(
-                              'Kedalaman: ${earthquake.depth} Km',
-                              style: Theme.of(context).textTheme.bodySmall,
+                              'Kedalaman: ${e.depth} Km',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const Divider(height: 24),
+
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+
+                  const SizedBox(height: 12),
+                  // REGION
                   Row(
                     children: [
                       const Icon(Icons.location_on,
-                          size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
+                          size: 18, color: Colors.grey),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          earthquake.region ?? 'Tidak diketahui',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          e.region ?? 'Tidak diketahui',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 8),
+                  // TIME
                   Row(
                     children: [
                       const Icon(Icons.access_time,
-                          size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
+                          size: 18, color: Colors.grey),
+                      const SizedBox(width: 6),
                       Text(
-                        '${earthquake.date} ${earthquake.time}',
-                        style: Theme.of(context).textTheme.bodySmall,
+                        '${e.date} ${e.time}',
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
-                  if (earthquake.felt != null) ...[
+
+                  if (e.felt != null) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         const Icon(Icons.warning,
-                            size: 16, color: Colors.orange),
-                        const SizedBox(width: 4),
+                            size: 18, color: Colors.orange),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            'Dirasakan: ${earthquake.felt}',
-                            style: Theme.of(context).textTheme.bodySmall,
+                            'Dirasakan: ${e.felt}',
+                            style: const TextStyle(fontSize: 12),
                           ),
                         ),
                       ],
@@ -248,11 +287,14 @@ class EarthquakeScreen extends StatelessWidget {
     );
   }
 
-  Color _getMagnitudeColor(double? magnitude) {
-    if (magnitude == null) return Colors.grey;
-    if (magnitude < 3.0) return Colors.green;
-    if (magnitude < 5.0) return Colors.yellow.shade700;
-    if (magnitude < 7.0) return Colors.orange;
-    return Colors.red;
+  // ---------------------------------------------------------
+  // MAGNITUDE COLOR
+  // ---------------------------------------------------------
+  Color _getMagnitudeColor(double? m) {
+    if (m == null) return Colors.grey;
+    if (m < 3.0) return Colors.green;
+    if (m < 5.0) return Colors.orange.shade700;
+    if (m < 7.0) return Colors.red.shade400;
+    return Colors.red.shade900;
   }
 }

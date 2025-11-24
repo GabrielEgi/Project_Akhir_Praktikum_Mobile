@@ -29,14 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  String _getInitial() {
-    final user = _currentUser;
-    if (user == null || user.username.isEmpty) {
-      return 'U';
-    }
-    return user.username.substring(0, 1).toUpperCase();
-  }
-
   String _getUsername() {
     return _currentUser?.username ?? 'User';
   }
@@ -74,16 +66,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // Default avatar = Icon(Icons.person)
             CircleAvatar(
               radius: 50,
               backgroundColor: Colors.blue.shade100,
-              child: Text(
-                _getInitial(),
-                style: const TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
+              child: const Icon(
+                Icons.person,
+                size: 60,
+                color: Colors.blue,
               ),
             ),
             const SizedBox(height: 16),

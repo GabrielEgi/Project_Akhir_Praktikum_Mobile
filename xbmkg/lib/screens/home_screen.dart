@@ -33,12 +33,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bmkgBlue = const Color(0xFF0077C8);
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F6FF),
       appBar: AppBar(
-        title: const Text('Beranda'),
+        backgroundColor: bmkgBlue,
+        elevation: 0,
+        title: const Text(
+          'WeatherNews BMKG',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
@@ -48,26 +56,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+
       body: RefreshIndicator(
+        color: bmkgBlue,
         onRefresh: () async {
           await Future.wait([
             context.read<WeatherProvider>().refresh(),
             context.read<EarthquakeProvider>().refresh(),
           ]);
         },
+
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
+
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildLocationCard(),
+              _buildLocationCard(bmkgBlue),
               const SizedBox(height: 16),
-              _buildWeatherSummary(),
+              _buildWeatherSummary(bmkgBlue),
               const SizedBox(height: 16),
               _buildEarthquakeSummary(),
               const SizedBox(height: 16),
-              _buildQuickActions(),
+              _buildQuickActions(bmkgBlue),
             ],
           ),
         ),
@@ -75,52 +87,54 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildLocationCard() {
+  // ---------------------------------------------------------
+  //  SECTION: LOKASI
+  // ---------------------------------------------------------
+  Widget _buildLocationCard(Color bmkgBlue) {
     return Consumer<WeatherProvider>(
-      builder: (context, weatherProvider, child) {
+      builder: (context, provider, child) {
         return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    color: bmkgBlue.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    Icons.location_on,
-                    color: Theme.of(context).primaryColor,
-                    size: 32,
-                  ),
+                  child: Icon(Icons.location_on, color: bmkgBlue, size: 30),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Lokasi Saat Ini',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                      const Text('Lokasi Saat Ini',
+                          style: TextStyle(fontSize: 12, color: Colors.grey)),
                       const SizedBox(height: 4),
                       Text(
-                        weatherProvider.selectedLocation,
-                        style: Theme.of(context).textTheme.titleLarge,
+                        provider.selectedLocation,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         DateFormat('EEEE, d MMMM yyyy', 'id_ID')
                             .format(DateTime.now()),
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit_location),
+                  icon: const Icon(Icons.edit_location_alt),
                   onPressed: () => _showLocationDialog(),
+                  color: bmkgBlue,
                 ),
               ],
             ),
@@ -130,98 +144,79 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWeatherSummary() {
+  // ---------------------------------------------------------
+  //  SECTION: CUACA HARI INI
+  // ---------------------------------------------------------
+  Widget _buildWeatherSummary(Color bmkgBlue) {
     return Consumer<WeatherProvider>(
-      builder: (context, weatherProvider, child) {
-        if (weatherProvider.isLoading) {
-          return Card(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              height: 200,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-          );
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return _loadingCard(height: 200);
         }
 
-        final temperature = weatherProvider.getCurrentTemperature();
-        final condition = weatherProvider.getCurrentWeatherCondition();
+        final temp = provider.getCurrentTemperature();
+        final kondisi = provider.getCurrentWeatherCondition();
 
-        return Card(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Theme.of(context).primaryColor,
-                  Theme.of(context).primaryColor.withValues(alpha: 0.7),
-                ],
-              ),
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [bmkgBlue, bmkgBlue.withOpacity(0.7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Cuaca Hari Ini',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Icon(
-                      Icons.wb_sunny,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
                     Text(
-                      temperature != null
-                          ? '${temperature.toStringAsFixed(0)}°'
-                          : '--°',
-                      style: const TextStyle(
-                        fontSize: 64,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1,
-                      ),
+                      "Cuaca Hari Ini",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          Text(
-                            condition ?? 'Memuat...',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            weatherProvider.selectedLocation,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    Icon(Icons.cloud, color: Colors.white, size: 34),
                   ],
                 ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Text(
+                      temp != null ? "${temp.toStringAsFixed(0)}°" : "--°",
+                      style: const TextStyle(
+                        fontSize: 60,
+                        height: 1,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          kondisi ?? "Memuat...",
+                          style: const TextStyle(
+                              fontSize: 18, color: Colors.white),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          provider.selectedLocation,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                )
               ],
             ),
           ),
@@ -230,24 +225,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ---------------------------------------------------------
+  //  SECTION: GEMPA
+  // ---------------------------------------------------------
   Widget _buildEarthquakeSummary() {
     return Consumer<EarthquakeProvider>(
-      builder: (context, earthquakeProvider, child) {
-        if (earthquakeProvider.isLoading) {
-          return Card(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              height: 150,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-          );
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return _loadingCard(height: 150);
         }
 
-        final latestEarthquake = earthquakeProvider.latestEarthquakes.isNotEmpty
-            ? earthquakeProvider.latestEarthquakes.first
+        final data = provider.latestEarthquakes.isNotEmpty
+            ? provider.latestEarthquakes.first
             : null;
 
         return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -256,39 +249,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Gempa Terkini',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: latestEarthquake != null &&
-                              latestEarthquake.magnitude != null &&
-                              latestEarthquake.magnitude! >= 5.0
-                          ? Colors.orange
-                          : Colors.grey,
-                    ),
+                    const Text("Gempa Terkini",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600)),
+                    Icon(Icons.warning_amber_rounded,
+                        color:
+                            (data?.magnitude ?? 0) >= 5 ? Colors.orange : Colors.grey),
                   ],
                 ),
-                const Divider(height: 24),
-                if (latestEarthquake != null) ...[
+                const SizedBox(height: 14),
+                const Divider(),
+                const SizedBox(height: 10),
+
+                if (data != null)
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
                         decoration: BoxDecoration(
-                          color: _getMagnitudeColor(latestEarthquake.magnitude),
+                          color: _getMagnitudeColor(data.magnitude),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'M ${latestEarthquake.magnitude?.toStringAsFixed(1) ?? '-'}',
+                          "M ${data.magnitude?.toStringAsFixed(1)}",
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -296,30 +282,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              latestEarthquake.region ?? 'Tidak diketahui',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            Text(data.region ?? "Tidak diketahui",
+                                style: const TextStyle(fontSize: 15)),
                             const SizedBox(height: 4),
-                            Text(
-                              '${latestEarthquake.date} ${latestEarthquake.time}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
+                            Text("${data.date} ${data.time}",
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
                           ],
                         ),
                       ),
                     ],
-                  ),
-                ] else ...[
-                  Center(
+                  )
+                else
+                  const Center(
                     child: Text(
-                      'Tidak ada data gempa terkini',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      "Tidak ada data gempa terbaru",
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  ),
-                ],
+                  )
               ],
             ),
           ),
@@ -328,15 +308,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickActions() {
+  // ---------------------------------------------------------
+  //  SECTION: MENU CEPAT
+  // ---------------------------------------------------------
+  Widget _buildQuickActions(Color bmkgBlue) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Akses Cepat',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        const Text("Akses Cepat",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
+
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -345,69 +327,36 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisSpacing: 12,
           childAspectRatio: 1.5,
           children: [
-            _buildQuickActionCard(
-              icon: Icons.cloud_queue,
-              title: 'Prakiraan Cuaca',
-              color: Colors.blue,
-              onTap: () {
-                // Navigate to weather screen
-              },
-            ),
-            _buildQuickActionCard(
-              icon: Icons.terrain,
-              title: 'Info Gempa',
-              color: Colors.orange,
-              onTap: () {
-                // Navigate to earthquake screen
-              },
-            ),
-            _buildQuickActionCard(
-              icon: Icons.air,
-              title: 'Kualitas Udara',
-              color: Colors.green,
-              onTap: () {
-                // Navigate to air quality screen
-              },
-            ),
-            _buildQuickActionCard(
-              icon: Icons.settings,
-              title: 'Pengaturan',
-              color: Colors.grey,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                );
-              },
-            ),
+            _quickAction(Icons.cloud_queue, "Prakiraan Cuaca", bmkgBlue, () {}),
+            _quickAction(Icons.terrain, "Info Gempa", Colors.orange, () {}),
+            _quickAction(Icons.air, "Kualitas Udara", Colors.green, () {}),
+            _quickAction(Icons.settings, "Pengaturan", Colors.grey, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            }),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildQuickActionCard({
-    required IconData icon,
-    required String title,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _quickAction(
+      IconData icon, String title, Color color, VoidCallback onTap) {
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 36, color: color),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+              const SizedBox(height: 6),
+              Text(title, textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -415,53 +364,60 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Color _getMagnitudeColor(double? magnitude) {
-    if (magnitude == null) return Colors.grey;
-    if (magnitude < 3.0) return Colors.green;
-    if (magnitude < 5.0) return Colors.yellow.shade700;
-    if (magnitude < 7.0) return Colors.orange;
+  // ---------------------------------------------------------
+  //  UTIL
+  // ---------------------------------------------------------
+  Widget _loadingCard({double height = 100}) {
+    return Card(
+      child: SizedBox(
+        height: height,
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+
+  Color _getMagnitudeColor(double? m) {
+    if (m == null) return Colors.grey;
+    if (m < 3) return Colors.green;
+    if (m < 5) return Colors.yellow.shade700;
+    if (m < 7) return Colors.orange;
     return Colors.red;
   }
 
+  // popup lokasi
   void _showLocationDialog() {
     final cities = [
-      'Jakarta',
-      'Yogyakarta',
-      'Bandung',
-      'Surabaya',
-      'Semarang',
-      'Medan',
-      'Palembang',
-      'Makassar',
-      'Denpasar',
-      'Malang',
+      "Jakarta",
+      "Yogyakarta",
+      "Bandung",
+      "Surabaya",
+      "Semarang",
+      "Medan",
+      "Palembang",
+      "Makassar",
+      "Denpasar",
+      "Malang",
     ];
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Pilih Lokasi'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: cities.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(cities[index]),
-                  onTap: () {
-                    context
-                        .read<WeatherProvider>()
-                        .changeLocation(cities[index]);
-                    Navigator.pop(context);
-                  },
-                );
+      builder: (_) => AlertDialog(
+        title: const Text("Pilih Lokasi"),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            itemCount: cities.length,
+            shrinkWrap: true,
+            itemBuilder: (_, i) => ListTile(
+              title: Text(cities[i]),
+              onTap: () {
+                context.read<WeatherProvider>().changeLocation(cities[i]);
+                Navigator.pop(context);
               },
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
