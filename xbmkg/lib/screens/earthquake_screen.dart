@@ -8,15 +8,20 @@ class EarthquakeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bmkgBlue = const Color(0xFF005AAC);
+   final bmkgBlue = const Color(0xFF0077C8);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F7FF),
+      backgroundColor: const Color(0xFFE8F1FF), // BMKG soft blue
       appBar: AppBar(
-        backgroundColor: bmkgBlue,
+        backgroundColor: const Color(0xFF1A73E8), // BMKG blue
+        elevation: 0,
+        centerTitle: true,
         title: const Text(
-          'Info Gempa BMKG',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          'Gempa Bumi',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
       body: Consumer<EarthquakeProvider>(

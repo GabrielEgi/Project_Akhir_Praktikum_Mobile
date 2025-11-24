@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/user_model.dart';
 import '../auth/login.dart';
-import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,9 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _loadCurrentUser() {
     final box = Hive.box<UserModel>('users');
     if (box.isNotEmpty) {
-      setState(() {
-        _currentUser = box.values.first;
-      });
+      _currentUser = box.values.first;
+      setState(() {});
     }
   }
 
@@ -61,7 +59,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (pickedFile != null && _currentUser != null) {
       _currentUser!.profileImage = pickedFile.path;
       await _currentUser!.save();
-
       setState(() {});
     }
   }
@@ -71,163 +68,122 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
-        title: const Text('Profil'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _navigateToSettings,
-          ),
-        ],
+        backgroundColor: Colors.blue.shade700,
+        title: const Text('Profil', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildProfileHeader(),
-            const SizedBox(height: 24),
-            _buildMenuCard(),
-            const SizedBox(height: 24),
-            _buildLogoutButton(),
-          ],
-        ),
+      body: Column(
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 16),
+          Expanded(child: _buildMenus()),
+        ],
       ),
     );
   }
 
-  Widget _buildProfileHeader() {
+  // ---------- HEADER ----------
+  Widget _buildHeader() {
     final image = _currentUser?.profileImage;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.blue.shade100,
-                backgroundImage: (image != null && File(image).existsSync())
-                    ? FileImage(File(image))
-                    : null,
-                child: (image == null)
-                    ? const Text(
-                        "A",
-                        style: TextStyle(
-                          fontSize: 48,
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _getUsername(),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Selamat datang!',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuCard() {
-    return Card(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      color: Colors.blue.shade700,
       child: Column(
         children: [
-          _buildMenuItem(
-            icon: Icons.person_outline,
-            title: 'Edit Profil',
-            onTap: () {},
+          GestureDetector(
+            onTap: _pickImage,
+            child: CircleAvatar(
+              radius: 55,
+              backgroundColor: Colors.white,
+              backgroundImage: (image != null && File(image).existsSync())
+                  ? FileImage(File(image))
+                  : null,
+              child: (image == null)
+                  ? const Text(
+                      "A",
+                      style: TextStyle(
+                        fontSize: 50,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    )
+                  : null,
+            ),
           ),
-          const Divider(height: 1),
-          _buildMenuItem(
-            icon: Icons.settings_outlined,
-            title: 'Pengaturan',
-            onTap: _navigateToSettings,
+          const SizedBox(height: 12),
+          Text(
+            _getUsername(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const Divider(height: 1),
-          _buildMenuItem(
-            icon: Icons.notifications_outlined,
-            title: 'Notifikasi',
-            onTap: () {},
-          ),
-          const Divider(height: 1),
-          _buildMenuItem(
-            icon: Icons.help_outline,
-            title: 'Bantuan',
-            onTap: _showHelpDialog,
-          ),
-          const Divider(height: 1),
-          _buildMenuItem(
-            icon: Icons.info_outline,
-            title: 'Tentang Aplikasi',
-            onTap: _showAboutAppDialog,
+          Text(
+            "Selamat datang kembali!",
+            style: TextStyle(
+              color: Colors.blue.shade100,
+              fontSize: 14,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(title),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
+  // ---------- MENU LIST ----------
+  Widget _buildMenus() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _menuTile(Icons.help_outline, "Bantuan", _showHelpDialog),
+        _menuTile(Icons.info_outline, "Tentang Aplikasi", _showAboutAppDialog),
+        const SizedBox(height: 20),
+        _logoutButton(),
+      ],
     );
   }
 
-  Widget _buildLogoutButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _showLogoutDialog,
-        icon: const Icon(Icons.logout),
-        label: const Text('Keluar'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
+  Widget _menuTile(IconData icon, String title, VoidCallback tap) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.blue.shade700),
+        title: Text(title),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: tap,
       ),
     );
   }
 
-  void _navigateToSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+  Widget _logoutButton() {
+    return ElevatedButton.icon(
+      onPressed: _showLogoutDialog,
+      icon: const Icon(Icons.logout),
+      label: const Text('Keluar'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red.shade600,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
+  // ---------- DIALOGS ----------
   void _showLogoutDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Keluar'),
-        content: const Text('Apakah Anda yakin ingin keluar?'),
+        title: const Text("Keluar"),
+        content: const Text("Yakin ingin keluar dari akun ini?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Batal")),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -237,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 (route) => false,
               );
             },
-            child: const Text('Keluar', style: TextStyle(color: Colors.red)),
+            child: const Text("Keluar", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -249,7 +205,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => const AlertDialog(
         title: Text('Bantuan'),
-        content: Text('Aplikasi informasi cuaca BMKG.'),
+        content: Text.rich(
+  TextSpan(
+    text: 'Aplikasi Informasi Cuaca BMKG.\n\n'
+          'Untuk bantuan lebih lanjut, silakan hubungi '
+          'Aslab kami dan berikan kami ',
+    children: <TextSpan>[
+      TextSpan(
+        text: 'nilai A',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+    ],
+  ),
+)
+
       ),
     );
   }
@@ -259,7 +228,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => const AlertDialog(
         title: Text('Tentang Aplikasi'),
-        content: Text('WeatherNews v1.0.0'),
+content: const Text(
+  'WeatherNews v1.0.0\n\n'
+  'Aplikasi ini menyediakan informasi cuaca terkini '
+  'yang bersumber dari Badan Meteorologi, Klimatologi, dan Geofisika (BMKG).\n\n'
+  'Dikembangkan oleh:\n'
+  '• Gabriel Egi Putra Setiawan — 1242390096\n'
+  '• Muhammad Agam Febryan — 1242390093\n\n'
+  'Terima kasih telah menggunakan aplikasi WeatherNews.',
+),
       ),
     );
   }

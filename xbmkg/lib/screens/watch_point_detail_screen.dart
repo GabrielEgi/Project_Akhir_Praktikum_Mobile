@@ -66,16 +66,27 @@ class _WatchPointDetailScreenState extends State<WatchPointDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE8F1FF), // BMKG soft blue
       appBar: AppBar(
-        title: Text(widget.watchPoint.name),
+        backgroundColor: const Color(0xFF1A73E8), // BMKG blue
+        elevation: 0,
         centerTitle: true,
-        actions: [
+        title: const Text(
+          'WeatherNews EXBMKG',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          
+        ),
+         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadWeather,
           ),
         ],
       ),
+   
       body: RefreshIndicator(
         onRefresh: _loadWeather,
         child: SingleChildScrollView(

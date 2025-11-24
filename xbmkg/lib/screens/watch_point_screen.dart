@@ -11,14 +11,23 @@ class WatchPointScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE8F1FF), // soft BMKG blue
       appBar: AppBar(
-        title: const Text('Titik Pantau'),
+        backgroundColor: const Color(0xFF1A73E8),
+        elevation: 0,
         centerTitle: true,
+        title: const Text(
+          'Titik Pantau Cuaca',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
+
       body: Consumer<WatchPointProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF1A73E8)),
+            );
           }
 
           if (provider.watchPoints.isEmpty) {
@@ -26,28 +35,31 @@ class WatchPointScreen extends StatelessWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () async {
-              provider.loadWatchPoints();
-            },
+            color: const Color(0xFF1A73E8),
+            onRefresh: () async => provider.loadWatchPoints(),
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: provider.watchPoints.length,
               itemBuilder: (context, index) {
-                final watchPoint = provider.watchPoints[index];
-                return _buildWatchPointCard(context, watchPoint, provider);
+                return _buildCard(context, provider.watchPoints[index], provider);
               },
             ),
           );
         },
       ),
+
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToAddScreen(context),
-        icon: const Icon(Icons.add_location_alt),
-        label: const Text('Tambah Titik'),
+        onPressed: () => _navigateToAdd(context),
+        backgroundColor: const Color(0xFF1A73E8),
+        icon: const Icon(Icons.add_location_alt, color: Colors.white),
+        label: const Text("Tambah Titik", style: TextStyle(color: Colors.white)),
       ),
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // EMPTY STATE (BMKG Style)
+  // ---------------------------------------------------------------------------
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
@@ -55,31 +67,28 @@ class WatchPointScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.location_off,
-              size: 80,
-              color: Colors.grey[400],
+            Icon(Icons.location_off, size: 90, color: Colors.blue.shade200),
+            const SizedBox(height: 20),
+            const Text(
+              "Belum Ada Titik Pantau",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Belum Ada Titik Pantau',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tambahkan titik pantau untuk memantau cuaca di lokasi yang kamu inginkan',
+            const SizedBox(height: 6),
+            const Text(
+              "Tambahkan lokasi untuk memantau cuaca di daerah yang kamu inginkan.",
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[500],
-                  ),
+              style: TextStyle(color: Colors.black54),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () => _navigateToAddScreen(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A73E8),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              onPressed: () => _navigateToAdd(context),
               icon: const Icon(Icons.add_location_alt),
-              label: const Text('Tambah Titik Pantau'),
+              label: const Text("Tambah Titik Pantau"),
             ),
           ],
         ),
@@ -87,74 +96,71 @@ class WatchPointScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWatchPointCard(
-    BuildContext context,
-    WatchPointModel watchPoint,
-    WatchPointProvider provider,
-  ) {
+  // ---------------------------------------------------------------------------
+  // CARD ITEM (BMKG Style)
+  // ---------------------------------------------------------------------------
+  Widget _buildCard(BuildContext context, WatchPointModel item, WatchPointProvider provider) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.white,
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
-        onTap: () => _navigateToDetailScreen(context, watchPoint),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _navigateToDetail(context, item),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
+                  // Icon bubble
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      color: const Color(0xFF1A73E8).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(
-                      Icons.location_on,
-                      color: Theme.of(context).primaryColor,
-                    ),
+                    child: const Icon(Icons.location_on, color: Color(0xFF1A73E8)),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
+
+                  // Title + address
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          watchPoint.name,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          item.name,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0D47A1),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          watchPoint.address,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[600],
-                              ),
+                          item.address,
+                          style: const TextStyle(fontSize: 13, color: Colors.black54),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+
+                  // Popup menu
                   PopupMenuButton<String>(
                     onSelected: (value) {
-                      if (value == 'edit') {
-                        _navigateToEditScreen(context, watchPoint);
-                      } else if (value == 'delete') {
-                        _showDeleteConfirmation(context, watchPoint, provider);
-                      }
+                      if (value == 'edit') _navigateToEdit(context, item);
+                      if (value == 'delete') _confirmDelete(context, item, provider);
                     },
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'edit',
                         child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
+                          children: [Icon(Icons.edit, size: 20), SizedBox(width: 8), Text("Edit")],
                         ),
                       ),
                       const PopupMenuItem(
@@ -163,7 +169,7 @@ class WatchPointScreen extends StatelessWidget {
                           children: [
                             Icon(Icons.delete, size: 20, color: Colors.red),
                             SizedBox(width: 8),
-                            Text('Hapus', style: TextStyle(color: Colors.red)),
+                            Text("Hapus", style: TextStyle(color: Colors.red))
                           ],
                         ),
                       ),
@@ -171,33 +177,27 @@ class WatchPointScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const Divider(height: 24),
+
+              const SizedBox(height: 14),
+              const Divider(),
+
+              // Chips Row
+              const SizedBox(height: 10),
               Row(
                 children: [
-                  _buildInfoChip(
-                    context,
-                    Icons.cloud,
-                    'Kota: ${watchPoint.nearestCity ?? '-'}',
-                    Colors.blue,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildInfoChip(
-                    context,
-                    Icons.my_location,
-                    '${watchPoint.latitude.toStringAsFixed(4)}, ${watchPoint.longitude.toStringAsFixed(4)}',
-                    Colors.green,
-                  ),
+                  _infoChip(Icons.cloud, "Kota: ${item.nearestCity ?? '-'}", Colors.blue),
+                  const SizedBox(width: 10),
+                  _infoChip(Icons.my_location,
+                      "${item.latitude.toStringAsFixed(4)}, ${item.longitude.toStringAsFixed(4)}",
+                      Colors.green),
                 ],
               ),
-              if (watchPoint.description != null &&
-                  watchPoint.description!.isNotEmpty) ...[
+
+              if (item.description != null && item.description!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  watchPoint.description!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey[600],
-                      ),
+                  item.description!,
+                  style: const TextStyle(color: Colors.black54, fontStyle: FontStyle.italic, fontSize: 13),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -209,99 +209,62 @@ class WatchPointScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoChip(
-    BuildContext context,
-    IconData icon,
-    String text,
-    Color color,
-  ) {
+  // CHIP
+  Widget _infoChip(IconData icon, String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 12, color: color),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(text, style: TextStyle(fontSize: 12, color: color)),
         ],
       ),
     );
   }
 
-  void _navigateToAddScreen(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddWatchPointScreen()),
-    );
+  // Navigation
+  void _navigateToAdd(BuildContext context) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const AddWatchPointScreen()));
   }
 
-  void _navigateToEditScreen(BuildContext context, WatchPointModel watchPoint) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AddWatchPointScreen(watchPoint: watchPoint),
-      ),
-    );
+  void _navigateToEdit(BuildContext context, WatchPointModel item) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => AddWatchPointScreen(watchPoint: item)));
   }
 
-  void _navigateToDetailScreen(BuildContext context, WatchPointModel watchPoint) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => WatchPointDetailScreen(watchPoint: watchPoint),
-      ),
-    );
+  void _navigateToDetail(BuildContext context, WatchPointModel item) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => WatchPointDetailScreen(watchPoint: item)));
   }
 
-  void _showDeleteConfirmation(
-    BuildContext context,
-    WatchPointModel watchPoint,
-    WatchPointProvider provider,
-  ) {
+  // Delete Dialog
+  void _confirmDelete(BuildContext context, WatchPointModel item, WatchPointProvider provider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hapus Titik Pantau'),
-        content: Text(
-          'Apakah kamu yakin ingin menghapus "${watchPoint.name}"?',
-        ),
+        title: const Text("Hapus Titik Pantau"),
+        content: Text("Apakah kamu yakin ingin menghapus \"${item.name}\"?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             onPressed: () async {
               Navigator.pop(context);
-              final success = await provider.deleteWatchPoint(watchPoint.id);
+              final success = await provider.deleteWatchPoint(item.id);
+
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      success
-                          ? 'Titik pantau berhasil dihapus'
-                          : 'Gagal menghapus titik pantau',
-                    ),
+                    content: Text(success ? "Titik pantau dihapus" : "Gagal menghapus"),
                     backgroundColor: success ? Colors.green : Colors.red,
                   ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Hapus'),
+            child: const Text("Hapus"),
           ),
         ],
       ),

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:xbmkg/screens/weather_screen.dart';
+import 'package:xbmkg/screens/earthquake_screen.dart';
+import 'package:xbmkg/screens/air_quality_screen.dart'; 
 import '../providers/weather_provider.dart';
 import '../providers/earthquake_provider.dart';
 import '../services/permission_service.dart';
 import '../services/preferences_service.dart';
-import 'settings_screen.dart';
 import 'watch_point_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -37,25 +39,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final bmkgBlue = const Color(0xFF0077C8);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F6FF),
+      backgroundColor: const Color(0xFFE8F1FF), // BMKG soft blue
       appBar: AppBar(
-        backgroundColor: bmkgBlue,
+        backgroundColor: const Color(0xFF1A73E8), // BMKG blue
         elevation: 0,
+        centerTitle: true,
         title: const Text(
-          'WeatherNews BMKG',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
+          'WeatherNews EXBMKG',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
-        ],
+        ),
       ),
 
       body: RefreshIndicator(
@@ -328,9 +323,24 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisSpacing: 12,
           childAspectRatio: 1.5,
           children: [
-            _quickAction(Icons.cloud_queue, "Prakiraan Cuaca", bmkgBlue, () {}),
-            _quickAction(Icons.terrain, "Info Gempa", Colors.orange, () {}),
-            _quickAction(Icons.air, "Kualitas Udara", Colors.green, () {}),
+            _quickAction(Icons.cloud_queue, "Prakiraan Cuaca", bmkgBlue, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WeatherScreen()),
+              );
+            }),
+            _quickAction(Icons.terrain, "Info Gempa", Colors.orange, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EarthquakeScreen()),
+              );
+            }),
+            _quickAction(Icons.air, "Kualitas Udara", Colors.green, () {
+              Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AirQualityScreen()),
+              );
+            }),
             _quickAction(Icons.location_on, "Titik Pantau", Colors.teal, () {
               Navigator.push(
                 context,
