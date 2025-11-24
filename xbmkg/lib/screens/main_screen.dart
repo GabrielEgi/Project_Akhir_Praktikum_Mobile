@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'weather_screen.dart';
 import 'earthquake_screen.dart';
-import 'air_quality_screen.dart';
+import 'watch_point_screen.dart';
 import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -19,7 +19,7 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const WeatherScreen(),
     const EarthquakeScreen(),
-    const AirQualityScreen(),
+    const WatchPointScreen(),
     const ProfileScreen(),
   ];
 
@@ -56,8 +56,8 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Gempa',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.air),
-            label: 'Udara',
+            icon: Icon(Icons.location_on),
+            label: 'Titik Pantau',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),

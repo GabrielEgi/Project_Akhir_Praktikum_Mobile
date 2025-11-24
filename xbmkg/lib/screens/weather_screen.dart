@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../providers/weather_provider.dart';
-
+import '../services/notification_service.dart';
 class WeatherScreen extends StatelessWidget {
   const WeatherScreen({super.key});
 
@@ -61,6 +61,8 @@ class WeatherScreen extends StatelessWidget {
                 children: [
                   _buildCurrentWeather(context, weatherProvider),
                   const SizedBox(height: 20),
+                  _buildWeatherNotificationButton(context),
+                  const SizedBox(height: 24),
                   _buildHourlyForecast(context, weatherProvider),
                   const SizedBox(height: 24),
                   _buildTemperatureChart(context, weatherProvider),
@@ -127,6 +129,58 @@ class WeatherScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+Widget _buildWeatherNotificationButton(BuildContext context) {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1A73E8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      ),
+      icon: const Icon(Icons.notifications_active, color: Colors.white),
+      label: const Text(
+        'Aktifkan Notifikasi Cuaca',
+        style: TextStyle(color: Colors.white, fontSize: 16),
+      ),
+      onPressed: () async {
+        final allowed =
+            await WeatherNotificationService.requestPermission();
+
+        if (!allowed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Izin notifikasi ditolak')),
+          );
+          return;
+        }
+
+        final provider =
+            Provider.of<WeatherProvider>(context, listen: false);
+
+        final condition = provider.getCurrentWeatherCondition();
+        final temp = provider.getCurrentTemperature() ?? 0;
+
+        String? alert;
+
+        if (condition != null && condition.toLowerCase().contains('hujan')) {
+          alert = "Waspada hujan! Siapkan payung ☔";
+        } else if (temp >= 34) {
+          alert = "Suhu sangat panas! Tetap hidrasi 🔥";
+        } else if (temp <= 20) {
+          alert = "Cuaca dingin, gunakan pakaian hangat ❄️";
+        }
+
+        alert ??= "Cuaca aman hari ini 😄";
+
+        WeatherNotificationService.showWeatherAlert(
+          title: "Peringatan Cuaca BMKG",
+          body: alert,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notifikasi cuaca dikirim')),
+        );
+      },
     );
   }
 
@@ -465,8 +519,11 @@ class WeatherScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                     ),
                   ],
+                  
                 ),
+                
               ),
+              
             ),
           )
         else

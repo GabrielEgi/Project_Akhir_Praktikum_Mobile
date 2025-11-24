@@ -5,13 +5,18 @@ import '../models/watch_point_model.dart';
 import 'add_watch_point_screen.dart';
 import 'watch_point_detail_screen.dart';
 
-class WatchPointScreen extends StatelessWidget {
+class WatchPointScreen extends StatefulWidget {
   const WatchPointScreen({super.key});
 
   @override
+  State<WatchPointScreen> createState() => _WatchPointScreenState();
+}
+
+class _WatchPointScreenState extends State<WatchPointScreen> {
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F1FF), // soft BMKG blue
+      backgroundColor: const Color(0xFFE8F1FF),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A73E8),
         elevation: 0,
@@ -58,7 +63,7 @@ class WatchPointScreen extends StatelessWidget {
   }
 
   // ---------------------------------------------------------------------------
-  // EMPTY STATE (BMKG Style)
+  // EMPTY STATE
   // ---------------------------------------------------------------------------
   Widget _buildEmptyState(BuildContext context) {
     return Center(
@@ -97,7 +102,7 @@ class WatchPointScreen extends StatelessWidget {
   }
 
   // ---------------------------------------------------------------------------
-  // CARD ITEM (BMKG Style)
+  // CARD ITEM
   // ---------------------------------------------------------------------------
   Widget _buildCard(BuildContext context, WatchPointModel item, WatchPointProvider provider) {
     return Card(
@@ -115,7 +120,6 @@ class WatchPointScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  // Icon bubble
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -126,7 +130,6 @@ class WatchPointScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 14),
 
-                  // Title + address
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +153,6 @@ class WatchPointScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // Popup menu
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'edit') _navigateToEdit(context, item);
@@ -180,9 +182,8 @@ class WatchPointScreen extends StatelessWidget {
 
               const SizedBox(height: 14),
               const Divider(),
-
-              // Chips Row
               const SizedBox(height: 10),
+
               Row(
                 children: [
                   _infoChip(Icons.cloud, "Kota: ${item.nearestCity ?? '-'}", Colors.blue),
@@ -255,7 +256,7 @@ class WatchPointScreen extends StatelessWidget {
               Navigator.pop(context);
               final success = await provider.deleteWatchPoint(item.id);
 
-              if (context.mounted) {
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(success ? "Titik pantau dihapus" : "Gagal menghapus"),
