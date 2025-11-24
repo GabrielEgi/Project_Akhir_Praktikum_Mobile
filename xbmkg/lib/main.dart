@@ -7,10 +7,12 @@ import 'models/user_model.dart';
 import 'models/earthquake_model.dart';
 import 'models/weather_model.dart';
 import 'models/weather_warning_model.dart';
+import 'models/watch_point_model.dart';
 import 'services/preferences_service.dart';
 import 'services/local_storage_service.dart';
 import 'providers/weather_provider.dart';
 import 'providers/earthquake_provider.dart';
+import 'providers/watch_point_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +26,7 @@ void main() async {
   Hive.registerAdapter(WeatherWarningModelAdapter());
   Hive.registerAdapter(WeatherModelAdapter());
   Hive.registerAdapter(WeatherDataAdapter());
+  Hive.registerAdapter(WatchPointModelAdapter());
 
   // Open all Hive boxes
   await Hive.openBox<UserModel>('users');
@@ -31,6 +34,7 @@ void main() async {
   await Hive.openBox<WeatherModel>(LocalStorageService.weatherBox);
   await Hive.openBox<WeatherWarningModel>(LocalStorageService.warningBox);
   await Hive.openBox<String>(LocalStorageService.favoritesBox);
+  await Hive.openBox<WatchPointModel>(LocalStorageService.watchPointBox);
 
   // Initialize Preferences
   await PreferencesService.init();
@@ -50,6 +54,7 @@ class WeatherNewsApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => WeatherProvider()),
         ChangeNotifierProvider(create: (_) => EarthquakeProvider()),
+        ChangeNotifierProvider(create: (_) => WatchPointProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

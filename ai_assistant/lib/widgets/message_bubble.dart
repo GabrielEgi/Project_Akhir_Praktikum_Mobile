@@ -92,7 +92,6 @@ class MessageBubble extends StatelessWidget {
                         icon: Icons.thumb_up_outlined,
                         tooltip: 'Bagus',
                         onPressed: () {
-                          // TODO: Implement like functionality
                         },
                       ),
                       const SizedBox(width: 8),
@@ -100,7 +99,6 @@ class MessageBubble extends StatelessWidget {
                         icon: Icons.thumb_down_outlined,
                         tooltip: 'Kurang bagus',
                         onPressed: () {
-                          // TODO: Implement dislike functionality
                         },
                       ),
                     ],

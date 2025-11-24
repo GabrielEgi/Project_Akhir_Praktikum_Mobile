@@ -6,6 +6,7 @@ import '../providers/earthquake_provider.dart';
 import '../services/permission_service.dart';
 import '../services/preferences_service.dart';
 import 'settings_screen.dart';
+import 'watch_point_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -102,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: bmkgBlue.withOpacity(0.15),
+                    color: bmkgBlue.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(Icons.location_on, color: bmkgBlue, size: 30),
@@ -160,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [bmkgBlue, bmkgBlue.withOpacity(0.7)],
+              colors: [bmkgBlue, bmkgBlue.withValues(alpha: 0.7)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -210,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           provider.selectedLocation,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -330,10 +331,10 @@ class _HomeScreenState extends State<HomeScreen> {
             _quickAction(Icons.cloud_queue, "Prakiraan Cuaca", bmkgBlue, () {}),
             _quickAction(Icons.terrain, "Info Gempa", Colors.orange, () {}),
             _quickAction(Icons.air, "Kualitas Udara", Colors.green, () {}),
-            _quickAction(Icons.settings, "Pengaturan", Colors.grey, () {
+            _quickAction(Icons.location_on, "Titik Pantau", Colors.teal, () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                MaterialPageRoute(builder: (_) => const WatchPointScreen()),
               );
             }),
           ],

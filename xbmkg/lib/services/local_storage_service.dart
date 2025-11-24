@@ -2,6 +2,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/weather_model.dart';
 import '../models/earthquake_model.dart';
 import '../models/weather_warning_model.dart';
+import '../models/watch_point_model.dart';
 
 class LocalStorageService {
   // Box names
@@ -9,6 +10,7 @@ class LocalStorageService {
   static const String earthquakeBox = 'earthquake_box';
   static const String warningBox = 'warning_box';
   static const String favoritesBox = 'favorites_box';
+  static const String watchPointBox = 'watch_point_box';
 
   // Helper method to safely get box (opens if not already open)
   Future<Box<T>> _getBox<T>(String boxName) async {
@@ -191,6 +193,44 @@ class LocalStorageService {
   /// Clear all favorites
   Future<void> clearFavorites() async {
     final box = await _getBox<String>(favoritesBox);
+    await box.clear();
+  }
+
+  // ============ Watch Point Operations ============
+
+  /// Create - Add new watch point
+  Future<void> addWatchPoint(WatchPointModel watchPoint) async {
+    final box = await _getBox<WatchPointModel>(watchPointBox);
+    await box.put(watchPoint.id, watchPoint);
+  }
+
+  /// Read - Get all watch points
+  List<WatchPointModel> getAllWatchPoints() {
+    final box = _getBoxSync<WatchPointModel>(watchPointBox);
+    return box?.values.toList() ?? [];
+  }
+
+  /// Read - Get watch point by ID
+  WatchPointModel? getWatchPoint(String id) {
+    final box = _getBoxSync<WatchPointModel>(watchPointBox);
+    return box?.get(id);
+  }
+
+  /// Update - Update existing watch point
+  Future<void> updateWatchPoint(WatchPointModel watchPoint) async {
+    final box = await _getBox<WatchPointModel>(watchPointBox);
+    await box.put(watchPoint.id, watchPoint);
+  }
+
+  /// Delete - Remove watch point by ID
+  Future<void> deleteWatchPoint(String id) async {
+    final box = await _getBox<WatchPointModel>(watchPointBox);
+    await box.delete(id);
+  }
+
+  /// Clear all watch points
+  Future<void> clearWatchPoints() async {
+    final box = await _getBox<WatchPointModel>(watchPointBox);
     await box.clear();
   }
 

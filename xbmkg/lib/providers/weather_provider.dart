@@ -173,15 +173,20 @@ class WeatherProvider extends ChangeNotifier {
       if (forecast.datetime == null) continue;
 
       final dateKey =
-          '${forecast.datetime!.year}-${forecast.datetime!.month}-${forecast.datetime!.day}';
+          '${forecast.datetime!.year}-${forecast.datetime!.month.toString().padLeft(2, '0')}-${forecast.datetime!.day.toString().padLeft(2, '0')}';
 
-      // Keep only the forecast at noon (12:00) for each day
-      if (forecast.datetime!.hour == 12) {
+      // Prefer forecast at noon (12:00) for each day, but accept any if noon not available
+      if (!dailyMap.containsKey(dateKey)) {
+        dailyMap[dateKey] = forecast;
+      } else if (forecast.datetime!.hour == 12) {
+        // Replace with noon forecast if available
         dailyMap[dateKey] = forecast;
       }
     }
 
-    return dailyMap.values.take(7).toList();
+    // Sort by date and take 7 days
+    final sortedKeys = dailyMap.keys.toList()..sort();
+    return sortedKeys.take(7).map((key) => dailyMap[key]!).toList();
   }
 
   /// Get current temperature

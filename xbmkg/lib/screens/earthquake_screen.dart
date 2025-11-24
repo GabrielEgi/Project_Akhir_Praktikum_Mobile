@@ -16,7 +16,7 @@ class EarthquakeScreen extends StatelessWidget {
         backgroundColor: bmkgBlue,
         title: const Text(
           'Info Gempa BMKG',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
       body: Consumer<EarthquakeProvider>(
@@ -46,7 +46,7 @@ class EarthquakeScreen extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      color: bmkgBlue.withOpacity(0.1),
+      color: bmkgBlue.withValues(alpha: 0.1),
       child: Row(
         children: [
           Expanded(
