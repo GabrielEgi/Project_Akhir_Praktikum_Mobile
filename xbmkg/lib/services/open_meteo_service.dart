@@ -3,9 +3,6 @@ import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import '../models/open_meteo_model.dart';
 
-/// Service untuk mengambil data cuaca dari Open-Meteo API
-/// API gratis, tanpa API key, dan sangat lengkap
-/// Docs: https://open-meteo.com/en/docs
 class OpenMeteoService {
   static const String _baseUrl = 'https://api.open-meteo.com/v1/forecast';
   static const Duration _timeout = Duration(seconds: 15);
