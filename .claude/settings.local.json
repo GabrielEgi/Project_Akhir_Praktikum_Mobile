@@ -4,7 +4,9 @@
       "Bash(dir:*)",
       "Bash(flutter pub:*)",
       "Bash(dart run build_runner:*)",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(find:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

@@ -4,18 +4,22 @@ import 'package:http/http.dart' as http;
 
 import '../models/earthquake_model.dart';
 import '../services/local_storage_service.dart';
-import '../services/permission_service.dart';
+import '../services/location_service.dart';
+import '../services/usgs_api_service.dart';
 
 class EarthquakeProvider extends ChangeNotifier {
   final LocalStorageService _storageService = LocalStorageService();
+  final UsgsApiService _usgsApiService = UsgsApiService();
 
   // State
   List<EarthquakeModel> _latestEarthquakes = [];
   List<EarthquakeModel> _recentEarthquakes = [];
   List<EarthquakeModel> _feltEarthquakes = [];
+  List<EarthquakeModel> _usgsEarthquakes = [];
   bool _isLoading = false;
   String? _error;
   String _selectedTab = 'latest';
+  bool _useUsgsData = false;
 
   double? _userLatitude;
   double? _userLongitude;
@@ -24,9 +28,11 @@ class EarthquakeProvider extends ChangeNotifier {
   List<EarthquakeModel> get latestEarthquakes => _latestEarthquakes;
   List<EarthquakeModel> get recentEarthquakes => _recentEarthquakes;
   List<EarthquakeModel> get feltEarthquakes => _feltEarthquakes;
+  List<EarthquakeModel> get usgsEarthquakes => _usgsEarthquakes;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get selectedTab => _selectedTab;
+  bool get useUsgsData => _useUsgsData;
 
   List<EarthquakeModel> get currentList {
     switch (_selectedTab) {
@@ -34,6 +40,8 @@ class EarthquakeProvider extends ChangeNotifier {
         return _recentEarthquakes;
       case 'felt':
         return _feltEarthquakes;
+      case 'usgs':
+        return _usgsEarthquakes;
       default:
         return _latestEarthquakes;
     }
@@ -90,7 +98,7 @@ class EarthquakeProvider extends ChangeNotifier {
   /// BMKG API (Versi Baru)
   Future<void> _loadFromApi() async {
     try {
-      // MAIN API
+      // MAIN API - BMKG
       final latestRes = await http.get(Uri.parse(
           "https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json"));
       final recentRes = await http.get(Uri.parse(
@@ -119,10 +127,89 @@ class EarthquakeProvider extends ChangeNotifier {
             list.map((e) => EarthquakeModel.fromJson(e)).toList();
       }
 
+      // Load USGS data (Indonesia region, last 7 days)
+      if (_useUsgsData) {
+        await _loadUsgsData();
+      }
+
       notifyListeners();
     } catch (e) {
       _error = "Gagal memuat data dari BMKG: $e";
     }
+  }
+
+  /// Load USGS API data
+  Future<void> _loadUsgsData() async {
+    try {
+      _usgsEarthquakes = await _usgsApiService.getIndonesiaEarthquakes(
+        days: 7,
+        minMagnitude: 2.5,
+      );
+    } catch (e) {
+      _error = "Gagal memuat data dari USGS: $e";
+    }
+  }
+
+  /// Toggle USGS data source
+  Future<void> toggleUsgsData(bool value) async {
+    _useUsgsData = value;
+    notifyListeners();
+
+    if (value && _usgsEarthquakes.isEmpty) {
+      await _loadUsgsData();
+      notifyListeners();
+    }
+  }
+
+  /// Load USGS data by region
+  Future<void> loadUsgsDataByRegion({
+    int days = 7,
+    double minMagnitude = 2.5,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _usgsEarthquakes = await _usgsApiService.getIndonesiaEarthquakes(
+        days: days,
+        minMagnitude: minMagnitude,
+      );
+    } catch (e) {
+      _error = "Gagal memuat data dari USGS: $e";
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Load USGS recent significant earthquakes
+  Future<void> loadUsgsRecentSignificant() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _usgsEarthquakes = await _usgsApiService.getRecentSignificantEarthquakes();
+    } catch (e) {
+      _error = "Gagal memuat data dari USGS: $e";
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Load USGS major earthquakes
+  Future<void> loadUsgsMajorEarthquakes() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _usgsEarthquakes = await _usgsApiService.getMajorEarthquakes();
+    } catch (e) {
+      _error = "Gagal memuat data dari USGS: $e";
+    }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   // Change Tab

@@ -152,30 +152,6 @@ class CameraService {
   }
 }
 
-class StorageService {
-  /// Check if storage permission is granted
-  static Future<bool> isStoragePermissionGranted() async {
-    final status = await Permission.storage.status;
-    return status.isGranted;
-  }
-
-  /// Request storage permission
-  static Future<PermissionStatus> requestStoragePermission() async {
-    return await Permission.storage.request();
-  }
-
-  /// Check and request storage permission
-  static Future<bool> checkAndRequestStoragePermission() async {
-    var status = await Permission.storage.status;
-
-    if (status.isDenied) {
-      status = await Permission.storage.request();
-    }
-
-    return status.isGranted;
-  }
-}
-
 class NotificationService {
   /// Check if notification permission is granted
   static Future<bool> isNotificationPermissionGranted() async {

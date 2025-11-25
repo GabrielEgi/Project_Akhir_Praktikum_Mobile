@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../auth/login.dart';
 
@@ -185,7 +186,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Batal")),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              // Clear login state from SharedPreferences
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('isLoggedIn', false);
+              await prefs.remove('username');
+
+              if (!mounted) return;
               Navigator.pop(ctx);
               Navigator.pushAndRemoveUntil(
                 context,

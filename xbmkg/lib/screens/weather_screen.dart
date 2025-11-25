@@ -191,11 +191,106 @@ Widget _buildWeatherNotificationButton(BuildContext context) {
     BuildContext context,
     WeatherProvider provider,
   ) {
-    final forecasts = provider.getTodayForecast();
+    // Use OpenMeteo data if available
+    if (provider.openMeteoWeather != null) {
+      final hourly = provider.openMeteoWeather!.hourly;
+      final now = DateTime.now();
+      final startIndex = hourly.time.indexWhere(
+        (t) => t.isAfter(now.subtract(const Duration(hours: 1))),
+      );
+      if (startIndex == -1) return const SizedBox.shrink();
 
+      final itemCount = 12.clamp(0, hourly.length - startIndex);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Prakiraan Per Jam',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0D47A1),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: itemCount,
+              itemBuilder: (context, index) {
+                final data = hourly.getHour(startIndex + index);
+                final isNow = index == 0;
+
+                return Container(
+                  width: 80,
+                  margin: const EdgeInsets.only(right: 10),
+                  decoration: BoxDecoration(
+                    gradient: isNow
+                        ? const LinearGradient(
+                            colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isNow ? null : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: isNow
+                        ? Border.all(color: const Color(0xFF0D47A1), width: 2)
+                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: isNow ? 8 : 4,
+                        spreadRadius: isNow ? 2 : 1,
+                        offset: const Offset(0, 2),
+                        color: isNow
+                            ? Colors.blue.withValues(alpha: 0.3)
+                            : Colors.black12.withValues(alpha: 0.1),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Text(
+                        isNow ? 'Sekarang' : DateFormat('HH:mm').format(data.time),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isNow ? FontWeight.bold : FontWeight.normal,
+                          color: isNow ? Colors.white : Colors.grey,
+                        ),
+                      ),
+                      Text(
+                        data.weatherEmoji,
+                        style: const TextStyle(fontSize: 28),
+                      ),
+                      Text(
+                        '${data.temperature?.round() ?? '-'}°',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isNow ? Colors.white : const Color(0xFF1E88E5),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          )
+        ],
+      );
+    }
+
+    // Fallback to old BMKG data
+    final forecasts = provider.getTodayForecast();
     if (forecasts.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final now = DateTime.now();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,45 +305,65 @@ Widget _buildWeatherNotificationButton(BuildContext context) {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 110,
+          height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: forecasts.length,
             itemBuilder: (context, index) {
               final forecast = forecasts[index];
+              final isCurrentHour = forecast.datetime != null &&
+                  forecast.datetime!.hour == now.hour &&
+                  forecast.datetime!.day == now.day;
+
               return Container(
-                width: 75,
+                width: 80,
                 margin: const EdgeInsets.only(right: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  gradient: isCurrentHour
+                      ? const LinearGradient(
+                          colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isCurrentHour ? null : Colors.white,
                   borderRadius: BorderRadius.circular(14),
+                  border: isCurrentHour
+                      ? Border.all(color: const Color(0xFF0D47A1), width: 2)
+                      : null,
                   boxShadow: [
                     BoxShadow(
-                      blurRadius: 4,
-                      spreadRadius: 1,
+                      blurRadius: isCurrentHour ? 8 : 4,
+                      spreadRadius: isCurrentHour ? 2 : 1,
                       offset: const Offset(0, 2),
-                      color: Colors.black12.withValues(alpha: 0.1),
+                      color: isCurrentHour
+                          ? Colors.blue.withValues(alpha: 0.3)
+                          : Colors.black12.withValues(alpha: 0.1),
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Text(
-                      DateFormat('HH:mm').format(forecast.datetime!),
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      isCurrentHour ? 'Sekarang' : DateFormat('HH:mm').format(forecast.datetime!),
+                      style: TextStyle(
+                        fontSize: isCurrentHour ? 11 : 11,
+                        fontWeight: isCurrentHour ? FontWeight.bold : FontWeight.normal,
+                        color: isCurrentHour ? Colors.white : Colors.grey,
+                      ),
                     ),
                     Text(
                       forecast.getWeatherIcon(),
-                      style: const TextStyle(fontSize: 26),
+                      style: const TextStyle(fontSize: 28),
                     ),
                     Text(
                       '${provider.getTemperature(forecast.temperature)?.toStringAsFixed(0)}°',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Color(0xFF1E88E5),
+                        fontSize: 16,
+                        color: isCurrentHour ? Colors.white : const Color(0xFF1E88E5),
                       ),
                     ),
                   ],
@@ -268,6 +383,196 @@ Widget _buildWeatherNotificationButton(BuildContext context) {
     BuildContext context,
     WeatherProvider provider,
   ) {
+    // Use OpenMeteo data if available
+    if (provider.openMeteoWeather != null) {
+      final hourly = provider.openMeteoWeather!.hourly;
+      final now = DateTime.now();
+      final startIndex = hourly.time.indexWhere(
+        (t) => t.isAfter(now.subtract(const Duration(hours: 1))),
+      );
+      if (startIndex == -1) return const SizedBox.shrink();
+
+      final chartCount = 12.clamp(0, hourly.length - startIndex);
+      final List<dynamic> chartData = [];
+
+      for (var i = 0; i < chartCount; i++) {
+        final data = hourly.getHour(startIndex + i);
+        if (data.temperature != null) {
+          chartData.add(data);
+        }
+      }
+
+      if (chartData.isEmpty) return const SizedBox.shrink();
+
+      final temps = chartData.map((d) => d.temperature as double).toList();
+      final minTemp = temps.reduce((a, b) => a < b ? a : b);
+      final maxTemp = temps.reduce((a, b) => a > b ? a : b);
+      final avgTemp = temps.reduce((a, b) => a + b) / temps.length;
+      final unit = provider.getTemperatureUnit();
+
+      return Card(
+        color: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Grafik Temperatur Hari Ini',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0D47A1),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildTempSummary('Terendah', minTemp, unit, Colors.blue),
+                  _buildTempSummary('Rata-rata', avgTemp, unit, Colors.orange),
+                  _buildTempSummary('Tertinggi', maxTemp, unit, Colors.red),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Perubahan suhu per jam (°C)',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 180,
+                child: LineChart(
+                  LineChartData(
+                    minY: (minTemp - 2).floorToDouble(),
+                    maxY: (maxTemp + 2).ceilToDouble(),
+                    gridData: FlGridData(
+                      show: true,
+                      horizontalInterval: 2,
+                      getDrawingHorizontalLine: (value) => FlLine(
+                        color: Colors.grey.shade200,
+                        strokeWidth: 1,
+                      ),
+                    ),
+                    titlesData: FlTitlesData(
+                      bottomTitles: AxisTitles(
+                        axisNameWidget: const Text(
+                          'Waktu',
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 28,
+                          interval: 1,
+                          getTitlesWidget: (value, meta) {
+                            final idx = value.toInt();
+                            if (idx < 0 || idx >= chartData.length) {
+                              return const SizedBox.shrink();
+                            }
+                            if (idx % 2 != 0 && chartData.length > 4) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                DateFormat('HH:mm').format(chartData[idx].time),
+                                style: const TextStyle(fontSize: 9, color: Colors.grey),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      leftTitles: AxisTitles(
+                        axisNameWidget: Text(
+                          '°$unit',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 32,
+                          interval: 2,
+                          getTitlesWidget: (value, meta) {
+                            return Text(
+                              '${value.toInt()}',
+                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                            );
+                          },
+                        ),
+                      ),
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    borderData: FlBorderData(
+                      show: true,
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey.shade300),
+                        left: BorderSide(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: chartData.asMap().entries.map((entry) {
+                          return FlSpot(
+                            entry.key.toDouble(),
+                            entry.value.temperature ?? 0,
+                          );
+                        }).toList(),
+                        isCurved: true,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF42A5F5), Color(0xFF1E88E5)],
+                        ),
+                        barWidth: 3,
+                        isStrokeCapRound: true,
+                        dotData: FlDotData(
+                          show: true,
+                          getDotPainter: (spot, percent, barData, index) {
+                            return FlDotCirclePainter(
+                              radius: 4,
+                              color: Colors.white,
+                              strokeWidth: 2,
+                              strokeColor: const Color(0xFF1E88E5),
+                            );
+                          },
+                        ),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              const Color(0xFF42A5F5).withValues(alpha: 0.3),
+                              const Color(0xFF42A5F5).withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        getTooltipItems: (touchedSpots) {
+                          return touchedSpots.map((spot) {
+                            final idx = spot.x.toInt();
+                            final data = chartData[idx];
+                            return LineTooltipItem(
+                              '${DateFormat('HH:mm').format(data.time)}\n${spot.y.toStringAsFixed(1)}°$unit',
+                              const TextStyle(color: Colors.white, fontSize: 12),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Fallback to old BMKG data
     final forecasts = provider.getTodayForecast();
     if (forecasts.isEmpty) return const SizedBox.shrink();
 
@@ -479,12 +784,126 @@ Widget _buildWeatherNotificationButton(BuildContext context) {
   }
 
   // -------------------------------------------------------------------
-  // WEEKLY FORECAST
+  // WEEKLY FORECAST (7 HARI MENDATANG)
   // -------------------------------------------------------------------
   Widget _buildWeeklyForecast(
     BuildContext context,
     WeatherProvider provider,
   ) {
+    // Use OpenMeteo data if available - shows next 7 days
+    if (provider.openMeteoWeather != null) {
+      final daily = provider.openMeteoWeather!.daily;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Prakiraan 7 Hari',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0D47A1),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...List.generate(daily.length.clamp(0, 7), (i) {
+            final data = daily.getDay(i);
+            final isToday = i == 0;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                gradient: isToday
+                    ? const LinearGradient(
+                        colors: [Color(0xFF42A5F5), Color(0xFF1E88E5)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      )
+                    : null,
+                color: isToday ? null : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    blurRadius: isToday ? 8 : 4,
+                    spreadRadius: isToday ? 1 : 0,
+                    offset: const Offset(0, 2),
+                    color: isToday
+                        ? const Color(0xFF1E88E5).withValues(alpha: 0.4)
+                        : Colors.black.withValues(alpha: 0.08),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: Text(
+                  data.weatherEmoji,
+                  style: const TextStyle(fontSize: 36),
+                ),
+                title: Text(
+                  isToday ? 'Hari Ini' : DateFormat('EEEE, d MMM', 'id_ID').format(data.time),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isToday ? Colors.white : Colors.black87,
+                  ),
+                ),
+                subtitle: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        data.weatherDescription,
+                        style: TextStyle(
+                          color: isToday ? Colors.white70 : Colors.black54,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (data.precipitationProbabilityMax != null &&
+                        data.precipitationProbabilityMax! > 0) ...[
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.water_drop,
+                        size: 14,
+                        color: isToday ? Colors.white70 : Colors.blue.shade300,
+                      ),
+                      Text(
+                        ' ${data.precipitationProbabilityMax}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isToday ? Colors.white70 : Colors.blue.shade400,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${data.temperatureMax?.round() ?? '-'}°',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isToday ? Colors.white : const Color(0xFF1E88E5),
+                      ),
+                    ),
+                    Text(
+                      '${data.temperatureMin?.round() ?? '-'}°',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isToday ? Colors.white70 : Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      );
+    }
+
+    // Fallback to old BMKG data
     final forecasts = provider.getWeeklyForecast();
 
     return Column(
@@ -519,27 +938,61 @@ Widget _buildWeatherNotificationButton(BuildContext context) {
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                     ),
                   ],
-                  
+
                 ),
-                
+
               ),
-              
+
             ),
           )
         else
           ...forecasts.map((forecast) {
+            final now = DateTime.now();
             final isToday = forecast.datetime != null &&
-                forecast.datetime!.day == DateTime.now().day &&
-                forecast.datetime!.month == DateTime.now().month;
+                forecast.datetime!.day == now.day &&
+                forecast.datetime!.month == now.month &&
+                forecast.datetime!.year == now.year;
 
-            return Card(
-              color: isToday ? const Color(0xFFE3F2FD) : Colors.white,
-              elevation: 1.5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                gradient: isToday
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      )
+                    : null,
+                color: isToday ? null : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: isToday
+                    ? Border.all(color: const Color(0xFF0D47A1), width: 2)
+                    : null,
+                boxShadow: [
+                  BoxShadow(
+                    blurRadius: isToday ? 8 : 2,
+                    spreadRadius: isToday ? 1 : 0,
+                    offset: const Offset(0, 2),
+                    color: isToday
+                        ? Colors.blue.withValues(alpha: 0.3)
+                        : Colors.black12.withValues(alpha: 0.1),
+                  ),
+                ],
+              ),
               child: ListTile(
-                leading: Text(
-                  forecast.getWeatherIcon(),
-                  style: const TextStyle(fontSize: 36),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isToday
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    forecast.getWeatherIcon(),
+                    style: const TextStyle(fontSize: 36),
+                  ),
                 ),
                 title: Text(
                   isToday
@@ -547,19 +1000,32 @@ Widget _buildWeatherNotificationButton(BuildContext context) {
                       : DateFormat('EEEE, d MMM', 'id_ID').format(forecast.datetime!),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isToday ? const Color(0xFF1E88E5) : null,
+                    fontSize: 16,
+                    color: isToday ? Colors.white : const Color(0xFF0D47A1),
                   ),
                 ),
                 subtitle: Text(
                   forecast.weather ?? '-',
-                  style: const TextStyle(color: Colors.black54),
+                  style: TextStyle(
+                    color: isToday ? Colors.white.withValues(alpha: 0.9) : Colors.black54,
+                    fontSize: 13,
+                  ),
                 ),
-                trailing: Text(
-                  '${provider.getTemperature(forecast.temperature)?.toStringAsFixed(0)}°',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E88E5),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isToday
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${provider.getTemperature(forecast.temperature)?.toStringAsFixed(0)}°',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isToday ? Colors.white : const Color(0xFF1E88E5),
+                    ),
                   ),
                 ),
               ),

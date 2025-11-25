@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
+import '../screens/main_screen.dart';
 import 'login.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -43,15 +45,21 @@ class _RegisterPageState extends State<RegisterPage> {
     final newUser = UserModel(username: username, password: password);
     await box.add(newUser);
 
+    // Save login state to SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+    await prefs.setString('username', username);
+
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Pendaftaran berhasil!")),
     );
 
+    // Langsung ke MainScreen setelah register
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
+      MaterialPageRoute(builder: (_) => const MainScreen()),
     );
   }
 
@@ -70,13 +78,13 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
 
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
           child: Column(
             children: [
               const Icon(Icons.person_add_alt_1,
-                  size: 90, color: Colors.white),
+                  size: 100, color: Colors.white),
 
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
 
               const Text(
                 "Create Account",
@@ -90,7 +98,7 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 8),
               const Text(
                 "Daftar untuk mulai menggunakan aplikasi",
-                style: TextStyle(fontSize: 14, color: Colors.white70),
+                style: TextStyle(color: Colors.white70),
               ),
 
               const SizedBox(height: 30),
@@ -187,7 +195,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: const Text(
                       "Login",
                       style: TextStyle(
-                        color: Colors.blue,
+                        color: Color(0xFF0288D1),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -197,11 +205,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   ],
                 ),
               ),
-
-              const SizedBox(height: 15),
-
-              // ⬇️ Bagian LOGIN sudah diperbaiki
-             
             ],
           ),
         ),

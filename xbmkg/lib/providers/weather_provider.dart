@@ -1,15 +1,19 @@
 import 'package:flutter/foundation.dart';
 import '../models/weather_model.dart';
+import '../models/open_meteo_model.dart';
 import '../services/bmkg_api_service.dart';
+import '../services/open_meteo_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/preferences_service.dart';
 import '../services/location_service.dart';
 
 class WeatherProvider extends ChangeNotifier {
   final BmkgApiService _apiService = BmkgApiService();
+  final OpenMeteoService _openMeteoService = OpenMeteoService();
   final LocalStorageService _storageService = LocalStorageService();
 
   WeatherModel? _currentWeather;
+  OpenMeteoWeather? _openMeteoWeather;
   bool _isLoading = false;
   String? _error;
   String _selectedLocation = 'Yogyakarta';
@@ -17,8 +21,23 @@ class WeatherProvider extends ChangeNotifier {
   double? _userLatitude;
   double? _userLongitude;
 
+  // City coordinates for major Indonesian cities
+  static const Map<String, Map<String, double>> cityCoordinates = {
+    'Jakarta': {'lat': -6.2088, 'lon': 106.8456},
+    'Yogyakarta': {'lat': -7.7956, 'lon': 110.3695},
+    'Bandung': {'lat': -6.9175, 'lon': 107.6191},
+    'Surabaya': {'lat': -7.2575, 'lon': 112.7521},
+    'Semarang': {'lat': -6.9667, 'lon': 110.4167},
+    'Medan': {'lat': 3.5952, 'lon': 98.6722},
+    'Palembang': {'lat': -2.9761, 'lon': 104.7754},
+    'Makassar': {'lat': -5.1477, 'lon': 119.4327},
+    'Denpasar': {'lat': -8.6705, 'lon': 115.2126},
+    'Malang': {'lat': -7.9666, 'lon': 112.6326},
+  };
+
   // GETTERS
   WeatherModel? get currentWeather => _currentWeather;
+  OpenMeteoWeather? get openMeteoWeather => _openMeteoWeather;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get selectedLocation => _selectedLocation;
@@ -102,20 +121,34 @@ class WeatherProvider extends ChangeNotifier {
         }
       }
 
-      // Ambil data BMKG API
-      final weather =
-          await _apiService.getWeatherForecast(_selectedLocation);
+      // Get coordinates for selected city
+      final coords = cityCoordinates[_selectedLocation] ?? cityCoordinates['Yogyakarta']!;
+      final lat = coords['lat']!;
+      final lon = coords['lon']!;
 
-      if (weather != null) {
-        _currentWeather = weather;
+      // Ambil data dari Open-Meteo API (prioritas)
+      _openMeteoWeather = await _openMeteoService.getWeather(
+        latitude: lat,
+        longitude: lon,
+      );
 
-        await _storageService.saveWeather(_selectedLocation, weather);
-        await PreferencesService.setLastUpdate(DateTime.now());
+      // Fallback ke BMKG jika Open-Meteo gagal
+      if (_openMeteoWeather == null) {
+        debugPrint("⚠️ Open-Meteo gagal, fallback ke BMKG API");
+        final weather = await _apiService.getWeatherForecast(_selectedLocation);
+        if (weather != null) {
+          _currentWeather = weather;
+          await _storageService.saveWeather(_selectedLocation, weather);
+          await PreferencesService.setLastUpdate(DateTime.now());
+        } else {
+          _error = "Failed to load weather data from both sources";
+        }
       } else {
-        _error = "Failed to load weather data";
+        await PreferencesService.setLastUpdate(DateTime.now());
       }
     } catch (e) {
       _error = "Error loading weather: $e";
+      debugPrint("⚠️ Error loading weather: $e");
 
       final cached = _storageService.getWeather(_selectedLocation);
       if (cached != null) {
@@ -179,9 +212,15 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------
-  // 📊 TODAY FORECAST
+  // 📊 TODAY FORECAST (using OpenMeteo data if available)
   // ---------------------------------------------------------
   List<WeatherData> getTodayForecast() {
+    // Try OpenMeteo first
+    if (_openMeteoWeather != null) {
+      return [];
+    }
+
+    // Fallback to old BMKG data
     if (_currentWeather?.forecasts == null) return [];
 
     final now = DateTime.now();
@@ -194,9 +233,15 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------
-  // 📆 NEXT 7 DAYS
+  // 📆 NEXT 7 DAYS (using OpenMeteo data if available)
   // ---------------------------------------------------------
   List<WeatherData> getWeeklyForecast() {
+    // Try OpenMeteo first
+    if (_openMeteoWeather != null) {
+      return [];
+    }
+
+    // Fallback to old BMKG data
     if (_currentWeather?.forecasts == null) return [];
 
     final Map<String, WeatherData> dailyMap = {};
@@ -205,17 +250,25 @@ class WeatherProvider extends ChangeNotifier {
       if (f.datetime == null) continue;
 
       final key =
-          '${f.datetime!.year}-${f.datetime!.month}-${f.datetime!.day}';
+          '${f.datetime!.year}-${f.datetime!.month.toString().padLeft(2, '0')}-${f.datetime!.day.toString().padLeft(2, '0')}';
 
-      // Ambil jam 12 siang untuk representasi hari
-      if (!dailyMap.containsKey(key) || f.datetime!.hour == 12) {
+      // Prioritas: ambil data jam 12 siang, kalau tidak ada ambil data terdekat
+      if (!dailyMap.containsKey(key)) {
+        dailyMap[key] = f;
+      } else if (f.datetime!.hour == 12) {
+        // Ganti dengan data jam 12 jika ada
+        dailyMap[key] = f;
+      } else if (dailyMap[key]!.datetime!.hour != 12 &&
+                 (f.datetime!.hour - 12).abs() < (dailyMap[key]!.datetime!.hour - 12).abs()) {
+        // Ambil data yang lebih dekat ke jam 12
         dailyMap[key] = f;
       }
     }
 
-    final sorted = dailyMap.keys.toList()
-      ..sort();
+    // Sort by date
+    final sorted = dailyMap.keys.toList()..sort();
 
+    // Take 7 days
     return sorted.take(7).map((key) => dailyMap[key]!).toList();
   }
 
@@ -223,6 +276,10 @@ class WeatherProvider extends ChangeNotifier {
   // 🌤 CURRENT
   // ---------------------------------------------------------
   double? getCurrentTemperature() {
+    if (_openMeteoWeather != null) {
+      return getTemperature(_openMeteoWeather!.current.temperature);
+    }
+
     final today = getTodayForecast();
     return today.isNotEmpty
         ? getTemperature(today.first.temperature)
@@ -230,6 +287,10 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   String? getCurrentWeatherCondition() {
+    if (_openMeteoWeather != null) {
+      return _openMeteoWeather!.current.weatherDescription;
+    }
+
     final today = getTodayForecast();
     return today.isNotEmpty ? today.first.weather : null;
   }

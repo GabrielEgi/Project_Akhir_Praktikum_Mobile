@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'onboarding_screen.dart';
+import 'main_screen.dart';
 import '../auth/login.dart';
 
 class SplashPage extends StatefulWidget {
@@ -21,17 +22,26 @@ class _SplashPageState extends State<SplashPage> {
   Future<void> _checkOnboarding() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool? hasSeen = prefs.getBool("hasSeenOnboarding");
+    bool? isLoggedIn = prefs.getBool("isLoggedIn");
 
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
-    if (hasSeen == true) {
+    // Jika sudah login, langsung ke MainScreen
+    if (isLoggedIn == true) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
+    } else if (hasSeen == true) {
+      // Sudah lihat onboarding tapi belum login
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
     } else {
+      // Belum lihat onboarding
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const OnboardingPage()),

@@ -3,7 +3,6 @@ import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import '../models/weather_model.dart';
 import '../models/earthquake_model.dart';
-import '../models/weather_warning_model.dart';
 
 class BmkgApiService {
   // Base URLs - sesuaikan dengan API BMKG yang tersedia
@@ -78,7 +77,7 @@ class BmkgApiService {
       }
     } catch (e) {
       developer.log('Error fetching earthquakes: $e', name: 'BmkgApiService');
-      return _createDummyEarthquakeData();
+      return [];
     }
   }
 
@@ -138,33 +137,6 @@ class BmkgApiService {
     }
   }
 
-  /// Fetch weather warnings from BMKG nowcast API
-  Future<List<WeatherWarningModel>> getWeatherWarnings() async {
-    try {
-      const url = '$warningApiUrl/id';
-
-      final response = await http.get(Uri.parse(url)).timeout(timeoutDuration);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (data['warnings'] != null) {
-          final warningList = data['warnings'] as List;
-
-          return warningList
-              .map((e) => WeatherWarningModel.fromJson(e))
-              .toList();
-        }
-
-        return [];
-      } else {
-        throw Exception('Failed to load warnings: ${response.statusCode}');
-      }
-    } catch (e) {
-      developer.log('Error fetching warnings: $e', name: 'BmkgApiService');
-      return _createDummyWarningData();
-    }
-  }
 
   /// Create dummy weather data for testing
   WeatherModel _createDummyWeatherData() {
@@ -187,38 +159,5 @@ class BmkgApiService {
     );
   }
 
-  /// Create dummy earthquake data for testing
-  List<EarthquakeModel> _createDummyEarthquakeData() {
-    return [
-      EarthquakeModel(
-        date: '21 November 2025',
-        time: '12:15:59 WIB',
-        datetime: DateTime.now(),
-        magnitude: 4.4,
-        depth: 25,
-        region: 'Pusat gempa berada di laut 37 km barat daya Pesisir Selatan',
-        latitude: -2.09,
-        longitude: 100.60,
-        potential: 'Tidak berpotensi tsunami',
-        felt: 'III-IV Pesisir Selatan, II-III Tua Pejat, II-III Solok Selatan',
-      ),
-    ];
-  }
 
-  /// Create dummy warning data for testing
-  List<WeatherWarningModel> _createDummyWarningData() {
-    return [
-      WeatherWarningModel(
-        id: '1',
-        title: 'Peringatan Cuaca Ekstrem',
-        description: 'Potensi hujan lebat disertai petir dan angin kencang',
-        level: 'Kuning',
-        area: 'Yogyakarta',
-        startTime: DateTime.now(),
-        endTime: DateTime.now().add(const Duration(hours: 6)),
-        phenomenon: 'Hujan Lebat',
-        instructions: 'Waspadai genangan air dan pohon tumbang',
-      ),
-    ];
-  }
 }

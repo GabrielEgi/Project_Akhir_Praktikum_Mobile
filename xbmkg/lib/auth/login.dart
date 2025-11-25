@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../screens/main_screen.dart';
 import '../models/user_model.dart';
-import '../services/permission_service.dart';
+import '../services/location_service.dart';
 import 'register.dart';
 
 class LoginPage extends StatefulWidget {
@@ -42,6 +43,11 @@ class _LoginPageState extends State<LoginPage> {
       );
       return;
     }
+
+    // Save login state to SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+    await prefs.setString('username', username);
 
     // Request location permission using native Android dialog
     await LocationService.requestLocationPermission();
