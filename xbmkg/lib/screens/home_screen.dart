@@ -62,7 +62,7 @@ Future<void> _checkLocationPermission() async {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'WeatherNews EXBMKG',
+          'WeatherNews',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
@@ -520,6 +520,6 @@ Future<void> _checkLocationPermission() async {
     ),
   );
 }
-  
+
 }
   
