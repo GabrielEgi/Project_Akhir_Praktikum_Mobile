@@ -52,36 +52,58 @@ class EarthquakeScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       color: bmkgBlue.withValues(alpha: 0.1),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildTab(
-              context,
-              'Terkini',
-              'latest',
-              provider.selectedTab == 'latest',
-              () => provider.changeTab('latest'),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            SizedBox(
+              width: MediaQuery.of(context).size.width / 4,
+              child: _buildTab(
+                context,
+                'Terkini',
+                'latest',
+                provider.selectedTab == 'latest',
+                () => provider.changeTab('latest'),
+              ),
             ),
-          ),
-          Expanded(
-            child: _buildTab(
-              context,
-              'M ≥ 5',
-              'recent',
-              provider.selectedTab == 'recent',
-              () => provider.changeTab('recent'),
+            SizedBox(
+              width: MediaQuery.of(context).size.width / 4,
+              child: _buildTab(
+                context,
+                'M ≥ 5',
+                'recent',
+                provider.selectedTab == 'recent',
+                () => provider.changeTab('recent'),
+              ),
             ),
-          ),
-          Expanded(
-            child: _buildTab(
-              context,
-              'Dirasakan',
-              'felt',
-              provider.selectedTab == 'felt',
-              () => provider.changeTab('felt'),
+            SizedBox(
+              width: MediaQuery.of(context).size.width / 4,
+              child: _buildTab(
+                context,
+                'Dirasakan',
+                'felt',
+                provider.selectedTab == 'felt',
+                () => provider.changeTab('felt'),
+              ),
             ),
-          ),
-        ],
+            SizedBox(
+              width: MediaQuery.of(context).size.width / 4,
+              child: _buildTab(
+                context,
+                'USGS',
+                'usgs',
+                provider.selectedTab == 'usgs',
+                () {
+                  provider.changeTab('usgs');
+                  // Load USGS data if not loaded yet
+                  if (provider.usgsEarthquakes.isEmpty) {
+                    provider.loadUsgsDataByRegion(days: 7, minMagnitude: 2.5);
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -210,13 +232,35 @@ class EarthquakeScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              e.getMagnitudeCategory(),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  e.getMagnitudeCategory(),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (provider.selectedTab == 'usgs') ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade700,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'USGS',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             Text(
                               'Kedalaman: ${e.depth} Km',

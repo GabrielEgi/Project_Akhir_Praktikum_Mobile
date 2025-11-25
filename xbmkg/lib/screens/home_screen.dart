@@ -370,16 +370,6 @@ Future<void> _checkLocationPermission() async {
               ),
             ),
             _quickAction(
-              Icons.air_rounded,
-              "Kualitas Udara",
-              const Color(0xFF66BB6A),
-              const Color(0xFFE8F5E9),
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const WatchPointScreen()),
-              ),
-            ),
-            _quickAction(
               Icons.location_on_rounded,
               "Titik Pantau",
               const Color(0xFF26A69A),
